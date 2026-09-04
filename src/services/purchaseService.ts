@@ -156,6 +156,31 @@ export class PurchaseService {
       return { success: false, error: formatDatabaseError(err, 'delete purchase record') };
     }
   }
+
+  async updatePurchase(id: string, updates: Partial<Purchase>): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Create db update object
+      const dbUpdates: any = {};
+      if (updates.supplier !== undefined) dbUpdates.supplier = updates.supplier;
+      if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+      if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.purchaseType !== undefined) dbUpdates.purchase_type = updates.purchaseType;
+
+      const { error } = await supabase
+        .from('purchases')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) {
+        return { success: false, error: formatDatabaseError(error, 'update purchase record') };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: formatDatabaseError(err, 'update purchase record') };
+    }
+  }
 }
 
 export const purchaseService = new PurchaseService();

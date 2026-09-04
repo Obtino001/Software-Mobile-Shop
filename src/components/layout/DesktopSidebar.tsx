@@ -104,12 +104,12 @@ export function DesktopSidebar() {
       <div className="p-3.5 border-t border-black/[0.08] bg-[#FAFAFA]">
         <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white border border-black/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-2.5">
-            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-lg shadow-sm ${
               partnerName.toLowerCase() === 'saad'
-                ? 'bg-blue-600'
-                : 'bg-[#E06349]'
+                ? 'bg-blue-50'
+                : 'bg-red-50'
             }`}>
-              {partnerName.charAt(0).toUpperCase()}
+              🍎
             </div>
             <div className="text-left leading-tight">
               <p className="text-xs font-bold text-slate-900">

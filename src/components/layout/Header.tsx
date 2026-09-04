@@ -101,12 +101,12 @@ export function Header() {
                 className="h-7 w-7 rounded-full object-cover"
               />
             ) : (
-              <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${
+              <div className={`h-7 w-7 rounded-full flex items-center justify-center text-lg shadow-sm ${
                 partnerName.toLowerCase() === 'saad' 
-                  ? 'bg-blue-600' 
-                  : 'bg-[#E06349]'
+                  ? 'bg-blue-50' 
+                  : 'bg-red-50'
               }`}>
-                {partnerName.charAt(0).toUpperCase()}
+                🍎
               </div>
             )}
 
@@ -131,10 +131,10 @@ export function Header() {
               />
               <div className="absolute right-0 mt-2 z-50 w-64 rounded-2xl border border-black/[0.08] bg-white p-3 shadow-xl animate-in zoom-in-95">
                 <div className="flex items-center gap-3 pb-3 border-b border-black/[0.06]">
-                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center text-sm font-black text-white shadow-sm ${
-                    partnerName.toLowerCase() === 'saad' ? 'bg-blue-600' : 'bg-[#E06349]'
+                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${
+                    partnerName.toLowerCase() === 'saad' ? 'bg-blue-50' : 'bg-red-50'
                   }`}>
-                    {partnerName.charAt(0).toUpperCase()}
+                    🍎
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900">{partnerName}</h4>

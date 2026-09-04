@@ -240,6 +240,38 @@ export class SalesService {
       return { success: false, error: formatDatabaseError(err, 'delete sale record') };
     }
   }
+
+  async updateSale(id: string, updates: Partial<Sale>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const dbUpdates: any = {};
+      if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName;
+      if (updates.customerPhone !== undefined) dbUpdates.customer_phone = updates.customerPhone;
+      if (updates.sellingPrice !== undefined) dbUpdates.selling_price = updates.sellingPrice;
+      if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+      if (updates.invoiceNumber !== undefined) dbUpdates.invoice_number = updates.invoiceNumber;
+      if (updates.warrantyDays !== undefined) dbUpdates.warranty_days = updates.warrantyDays;
+      if (updates.warrantyExpiryDate !== undefined) dbUpdates.warranty_expiry_date = updates.warrantyExpiryDate;
+      if (updates.cashAmount !== undefined) dbUpdates.cash_amount = updates.cashAmount;
+      if (updates.bankAmount !== undefined) dbUpdates.bank_amount = updates.bankAmount;
+      if (updates.bankName !== undefined) dbUpdates.bank_name = updates.bankName;
+      if (updates.isExchange !== undefined) dbUpdates.is_exchange = updates.isExchange;
+      if (updates.exchangeDeduction !== undefined) dbUpdates.trade_in_credit = updates.exchangeDeduction;
+
+      const { error } = await supabase
+        .from('sales')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) {
+        return { success: false, error: formatDatabaseError(error, 'update sale record') };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: formatDatabaseError(err, 'update sale record') };
+    }
+  }
 }
 
 export const salesService = new SalesService();

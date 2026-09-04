@@ -16,18 +16,37 @@ import {
   ArrowUpRight, 
   ArrowDownLeft, 
   Filter,
-  Plus
+  Plus,
+  Trash2,
+  Edit3
 } from 'lucide-react';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { CashTransaction } from '../../types';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export function CashScreen() {
   const { 
     transactions, 
     getCashInHand, 
     getBankBalance, 
-    transferFunds 
+    transferFunds,
+    updateCashTransaction,
+    deleteCashTransaction
   } = useAppStore();
 
   const { success, error } = useToast();
+  const { hasPermission } = useAuthStore();
+  const canEditRecords = hasPermission('records:edit');
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState<CashTransaction | null>(null);
+  const [editForm, setEditForm] = useState({
+    description: '',
+    amount: ''
+  });
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<CashTransaction | null>(null);
 
   const cashInHand = getCashInHand();
   const bankBalance = getBankBalance();
@@ -81,6 +100,52 @@ export function CashScreen() {
     setIsTransferModalOpen(false);
     setTransferAmount(0);
     setTransferNotes('');
+  };
+
+  const handleEditClick = (e: React.MouseEvent, tx: CashTransaction) => {
+    e.stopPropagation();
+    setTransactionToEdit(tx);
+    setEditForm({
+      description: tx.description || '',
+      amount: tx.amount.toString()
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transactionToEdit) return;
+
+    const res = await updateCashTransaction(transactionToEdit.id, {
+      description: editForm.description,
+      amount: Number(editForm.amount)
+    });
+
+    if (res.success) {
+      success('Transaction updated successfully');
+      setIsEditOpen(false);
+    } else {
+      error(res.error || 'Failed to update transaction');
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, tx: CashTransaction) => {
+    e.stopPropagation();
+    setTransactionToDelete(tx);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    
+    const res = await deleteCashTransaction(transactionToDelete.id);
+    if (res.success) {
+      success('Transaction deleted');
+      setIsDeleteOpen(false);
+      setTransactionToDelete(null);
+    } else {
+      error(res.error || 'Failed to delete transaction');
+    }
   };
 
   return (
@@ -234,6 +299,16 @@ export function CashScreen() {
                   }`}>
                     {isInflow ? '+' : '-'}{formatPKR(tx.amount)}
                   </span>
+                  {canEditRecords && (
+                    <div className="flex gap-1 mt-1 justify-end">
+                      <button onClick={(e) => handleEditClick(e, tx)} className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={(e) => handleDeleteClick(e, tx)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -329,6 +404,50 @@ export function CashScreen() {
           </div>
         </form>
       </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Edit Transaction"
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <Input
+            label="Description"
+            value={editForm.description}
+            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+            required
+          />
+          <Input
+            label="Amount (PKR)"
+            type="number"
+            value={editForm.amount}
+            onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+            required
+          />
+          
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button type="button" variant="ghost" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        title="Delete Transaction?"
+        description="This will permanently delete this cash transaction. This may affect your cash/bank balances. Are you absolutely sure?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onClose={() => setIsDeleteOpen(false)}
+        variant="danger"
+      />
     </div>
   );
 }

@@ -137,6 +137,8 @@ interface AppState {
     simType?: any;
     batteryHealth?: number;
   }) => Promise<{ success: boolean; error?: string }>;
+  updatePurchase: (id: string, updates: Partial<Purchase>) => Promise<{ success: boolean; error?: string }>;
+  deletePurchase: (id: string) => Promise<{ success: boolean; error?: string }>;
 
   // Clean Actions: Sales (POS Out)
   recordSale: (params: {
@@ -162,6 +164,8 @@ interface AppState {
     soldBy: 'Yasir' | 'Saad' | string;
     notes?: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  updateSale: (id: string, updates: Partial<Sale>) => Promise<{ success: boolean; error?: string }>;
+  deleteSale: (id: string) => Promise<{ success: boolean; error?: string }>;
 
   // Clean Actions: Expenses
   addExpense: (params: {
@@ -172,10 +176,13 @@ interface AppState {
     paidBy?: 'Yasir' | 'Saad' | string;
     notes?: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  updateExpense: (id: string, updates: Partial<Expense>) => Promise<{ success: boolean; error?: string }>;
   deleteExpense: (id: string) => Promise<{ success: boolean; error?: string }>;
 
   // Clean Actions: Cash Transactions
   addCashTransaction: (tx: Omit<CashTransaction, 'id'>) => Promise<{ success: boolean; error?: string }>;
+  updateCashTransaction: (id: string, updates: Partial<CashTransaction>) => Promise<{ success: boolean; error?: string }>;
+  deleteCashTransaction: (id: string) => Promise<{ success: boolean; error?: string }>;
   transferFunds: (params: {
     from: AccountType;
     to: AccountType;
@@ -1473,6 +1480,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { success: true };
   },
 
+  updatePurchase: async (id, updates) => {
+    set({ isSaving: true });
+    const res = await purchaseService.updatePurchase(id, updates);
+    if (res.success) {
+      set((state) => ({
+        purchases: state.purchases.map(p => p.id === id ? { ...p, ...updates } : p)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
+  },
+
+  deletePurchase: async (id) => {
+    set({ isSaving: true });
+    const res = await purchaseService.deletePurchase(id);
+    if (res.success) {
+      set((state) => ({
+        purchases: state.purchases.filter(p => p.id !== id)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
+  },
+
   // --- Sales Action (POS Out) ---
   recordSale: async (params) => {
     const mobile = get().mobiles.find((m) => m.id === params.phoneId);
@@ -1531,6 +1562,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Trigger full background sync
     get().fetchInitialData();
     return { success: true };
+  },
+
+  updateSale: async (id, updates) => {
+    set({ isSaving: true });
+    const res = await salesService.updateSale(id, updates);
+    if (res.success) {
+      set((state) => ({
+        sales: state.sales.map(s => s.id === id ? { ...s, ...updates } : s)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
+  },
+
+  deleteSale: async (id) => {
+    set({ isSaving: true });
+    const res = await salesService.deleteSale(id);
+    if (res.success) {
+      set((state) => ({
+        sales: state.sales.filter(s => s.id !== id)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
   },
 
   // --- Expenses Actions ---
@@ -1668,6 +1723,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { success: true };
   },
 
+  updateExpense: async (id, updates) => {
+    set({ isSaving: true });
+    const res = await expenseService.updateExpense(id, updates);
+    if (res.success) {
+      set((state) => ({
+        expenses: state.expenses.map(e => e.id === id ? { ...e, ...updates } : e)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
+  },
+
   // --- Cash Transactions Actions ---
   addCashTransaction: async (txData) => {
     set({ isSaving: true });
@@ -1691,6 +1758,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
 
     return { success: true };
+  },
+
+  updateCashTransaction: async (id, updates) => {
+    set({ isSaving: true });
+    const res = await cashTransactionService.updateTransaction(id, updates);
+    if (res.success) {
+      set((state) => ({
+        transactions: state.transactions.map(t => t.id === id ? { ...t, ...updates } : t)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
+  },
+
+  deleteCashTransaction: async (id) => {
+    set({ isSaving: true });
+    const res = await cashTransactionService.deleteTransaction(id);
+    if (res.success) {
+      set((state) => ({
+        transactions: state.transactions.filter(t => t.id !== id)
+      }));
+    }
+    set({ isSaving: false });
+    return res;
   },
 
   transferFunds: async (params) => {

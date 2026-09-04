@@ -14,14 +14,34 @@ import {
   Share2, 
   TrendingUp, 
   CheckCircle2,
-  Smartphone
+  Trash2,
+  Edit3
 } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import { useToast } from '../../components/ui/toast';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 
 export function SalesScreen() {
   const { sales, openQuickSale, getTotalSales, getGrossProfit } = useAppStore();
   const { hasPermission, partnerName } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
+  const { success, error: toastError } = useToast();
+
+  const canEditRecords = hasPermission('records:edit');
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [saleToEdit, setSaleToEdit] = useState<SaleRecord | null>(null);
+  
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<SaleRecord | null>(null);
+
+  const [editForm, setEditForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    sellingPrice: '',
+    notes: ''
+  });
 
   const canViewFinancials = hasPermission('financials:view');
   const totalRevenue = getTotalSales();
@@ -41,6 +61,56 @@ export function SalesScreen() {
       (snap && snap.imei1 && snap.imei1.includes(q))
     );
   });
+
+  const handleEditClick = (e: React.MouseEvent, sale: SaleRecord) => {
+    e.stopPropagation();
+    setSaleToEdit(sale);
+    setEditForm({
+      customerName: sale.customerName || '',
+      customerPhone: sale.customerPhone || '',
+      sellingPrice: (sale.sellingPrice || sale.salePrice)?.toString() || '',
+      notes: sale.notes || ''
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleToEdit) return;
+    
+    const res = await useAppStore.getState().updateSale(saleToEdit.id, {
+      customerName: editForm.customerName,
+      customerPhone: editForm.customerPhone,
+      sellingPrice: Number(editForm.sellingPrice),
+      notes: editForm.notes
+    });
+
+    if (res.success) {
+      success('Sale updated successfully');
+      setIsEditOpen(false);
+    } else {
+      toastError(res.error || 'Failed to update sale');
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, sale: SaleRecord) => {
+    e.stopPropagation();
+    setSaleToDelete(sale);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!saleToDelete) return;
+    const res = await useAppStore.getState().deleteSale(saleToDelete.id);
+    
+    if (res.success) {
+      success('Sale deleted completely');
+      setIsDeleteOpen(false);
+      setSaleToDelete(null);
+    } else {
+      toastError(res.error || 'Failed to delete sale');
+    }
+  };
 
   return (
     <div className="space-y-4 pb-6">
@@ -160,6 +230,17 @@ export function SalesScreen() {
                       <span className="rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 px-1.5 py-0.5 text-[9px] font-bold">
                         {sale.warrantyDays || 7}d Warranty
                       </span>
+
+                      {canEditRecords && (
+                        <div className="flex gap-1 ml-auto sm:ml-2">
+                          <button onClick={(e) => handleEditClick(e, sale)} className="p-1 rounded text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={(e) => handleDeleteClick(e, sale)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
@@ -211,11 +292,64 @@ export function SalesScreen() {
         </div>
       )}
 
-      {/* Digital Receipt Modal */}
       <SaleReceiptModal
         sale={selectedReceipt}
         isOpen={!!selectedReceipt}
         onClose={() => setSelectedReceipt(null)}
+      />
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Edit Sale Record"
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <Input
+            label="Customer Name"
+            value={editForm.customerName}
+            onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })}
+            required
+          />
+          <Input
+            label="Customer Phone"
+            value={editForm.customerPhone}
+            onChange={(e) => setEditForm({ ...editForm, customerPhone: e.target.value })}
+          />
+          <Input
+            label="Selling Price"
+            type="number"
+            value={editForm.sellingPrice}
+            onChange={(e) => setEditForm({ ...editForm, sellingPrice: e.target.value })}
+            required
+          />
+          <Input
+            label="Notes (Optional)"
+            value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+          />
+          
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button type="button" variant="ghost" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        title="Delete Sale Record?"
+        description="This will permanently delete the sale and any associated cash inflow. Are you absolutely sure?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onClose={() => setIsDeleteOpen(false)}
+        variant="danger"
       />
     </div>
   );

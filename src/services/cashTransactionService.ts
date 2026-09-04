@@ -127,6 +127,26 @@ export class CashTransactionService {
       return { success: false, error: formatDatabaseError(err, 'delete transaction') };
     }
   }
+
+  async updateTransaction(id: string, updates: Partial<CashTransaction>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const dbUpdates: any = {};
+      if (updates.type !== undefined) dbUpdates.type = updates.type;
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.account !== undefined) dbUpdates.account = updates.account;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+
+      const { error } = await supabase.from('cash_transactions').update(dbUpdates).eq('id', id);
+      if (error) {
+        return { success: false, error: formatDatabaseError(error, 'update transaction') };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: formatDatabaseError(err, 'update transaction') };
+    }
+  }
 }
 
 export const cashTransactionService = new CashTransactionService();

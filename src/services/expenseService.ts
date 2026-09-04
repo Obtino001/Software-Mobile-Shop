@@ -99,6 +99,26 @@ export class ExpenseService {
       return { success: false, error: formatDatabaseError(err, 'delete expense') };
     }
   }
+
+  async updateExpense(id: string, updates: Partial<Expense>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const dbUpdates: any = {};
+      if (updates.category !== undefined) dbUpdates.category = updates.category;
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+      if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
+      if (updates.date !== undefined) dbUpdates.date = updates.date;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+      const { error } = await supabase.from('expenses').update(dbUpdates).eq('id', id);
+      if (error) {
+        return { success: false, error: formatDatabaseError(error, 'update expense') };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: formatDatabaseError(err, 'update expense') };
+    }
+  }
 }
 
 export const expenseService = new ExpenseService();

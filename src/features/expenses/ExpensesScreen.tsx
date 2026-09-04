@@ -9,6 +9,7 @@ import {
   Search,
   ReceiptText,
   Trash2,
+  Edit3,
   Coffee,
   AlertTriangle,
   TrendingUp,
@@ -18,6 +19,9 @@ import {
 import { ExpenseCategory } from '../../types';
 import { AnimatedNumber } from '../../components/animation/AnimatedNumber';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import { Expense } from '../../types';
 import {
   BarChart,
   Bar,
@@ -39,7 +43,17 @@ export function ExpensesScreen() {
   const [selectedMonth, setSelectedMonth] = useState<string>('this_month');
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
+  const canEditRecords = hasPermission('records:edit');
   const canDeleteExpense = hasPermission('expenses:delete');
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
+  
+  const [editForm, setEditForm] = useState({
+    title: '',
+    amount: '',
+    notes: ''
+  });
 
   const MONTHLY_BUDGET = settings?.monthlyExpenseTarget || 20000;
   const categoryBudgets = settings?.categoryBudgets || {};
@@ -111,6 +125,32 @@ export function ExpensesScreen() {
       deleteExpense(expenseToDelete);
       success('Expense deleted');
       setExpenseToDelete(null);
+    }
+  };
+
+  const handleEditClick = (expense: Expense) => {
+    setExpenseToEdit(expense);
+    setEditForm({
+      title: expense.title,
+      amount: expense.amount.toString(),
+      notes: expense.notes || ''
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expenseToEdit) return;
+
+    const res = await useAppStore.getState().updateExpense(expenseToEdit.id, {
+      title: editForm.title,
+      amount: Number(editForm.amount),
+      notes: editForm.notes
+    });
+
+    if (res.success) {
+      success('Expense updated successfully');
+      setIsEditOpen(false);
     }
   };
 

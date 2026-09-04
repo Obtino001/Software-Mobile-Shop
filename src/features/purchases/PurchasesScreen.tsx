@@ -6,7 +6,12 @@ import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { StatCard } from '../../components/ui/stat-card';
 import { EmptyState } from '../../components/ui/empty-state';
-import { Plus, Search, ArrowDownLeft, ShieldCheck, User, Smartphone, CheckCircle } from 'lucide-react';
+import { Plus, Search, ArrowDownLeft, ShieldCheck, User, Smartphone, CheckCircle, Trash2, Edit3 } from 'lucide-react';
+import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import { useToast } from '../../components/ui/toast';
+import { Purchase } from '../../types';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 
 export function PurchasesScreen() {
   const { purchases, openQuickPurchase, getTotalPurchases, getStockCount } = useAppStore();
@@ -30,6 +35,52 @@ export function PurchasesScreen() {
       imeiStr.includes(q)
     );
   });
+
+  const handleEditClick = (purchase: Purchase) => {
+    setSelectedPurchase(purchase);
+    setEditForm({
+      supplier: purchase.supplier || '',
+      amount: purchase.amount?.toString() || '',
+      notes: purchase.notes || ''
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPurchase) return;
+    
+    const res = await useAppStore.getState().updatePurchase(selectedPurchase.id, {
+      supplier: editForm.supplier,
+      amount: Number(editForm.amount),
+      notes: editForm.notes
+    });
+
+    if (res.success) {
+      success('Purchase updated successfully');
+      setIsEditOpen(false);
+    } else {
+      toastError(res.error || 'Failed to update purchase');
+    }
+  };
+
+  const handleDeleteClick = (purchase: Purchase) => {
+    setPurchaseToDelete(purchase);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!purchaseToDelete) return;
+    const res = await useAppStore.getState().deletePurchase(purchaseToDelete.id);
+    
+    if (res.success) {
+      success('Purchase deleted completely');
+      setIsDeleteOpen(false);
+      setPurchaseToDelete(null);
+    } else {
+      toastError(res.error || 'Failed to delete purchase');
+    }
+  };
 
   return (
     <div className="space-y-4 pb-6">
@@ -141,6 +192,17 @@ export function PurchasesScreen() {
                       <span className="rounded bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 px-1.5 py-0.5 text-[9px] font-bold">
                         {purchase.purchaseType || 'Stock In'}
                       </span>
+                      
+                      {canEditRecords && (
+                        <div className="flex gap-1 ml-auto sm:ml-2">
+                          <button onClick={() => handleEditClick(purchase)} className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteClick(purchase)} className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
@@ -183,6 +245,55 @@ export function PurchasesScreen() {
           })}
         </div>
       )}
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        title="Edit Purchase Record"
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <Input
+            label="Supplier / Seller Name"
+            value={editForm.supplier}
+            onChange={(e) => setEditForm({ ...editForm, supplier: e.target.value })}
+            required
+          />
+          <Input
+            label="Purchase Amount (Cost)"
+            type="number"
+            value={editForm.amount}
+            onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+            required
+          />
+          <Input
+            label="Notes (Optional)"
+            value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+          />
+          
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button type="button" variant="ghost" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        title="Delete Purchase Record?"
+        description="This will permanently delete the purchase and any associated cash outflow. The phone will remain in inventory unless deleted separately. Are you absolutely sure?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onClose={() => setIsDeleteOpen(false)}
+        variant="danger"
+      />
     </div>
   );
 }
