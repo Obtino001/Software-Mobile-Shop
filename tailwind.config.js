@@ -49,7 +49,7 @@ export default {
         'glow-brand': '0 0 25px rgba(16, 185, 129, 0.25)',
       },
       fontFamily: {
-        sans: ['"Mabry Pro"', 'Mabry', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       }
     },
   },
