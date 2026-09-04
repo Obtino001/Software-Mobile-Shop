@@ -462,19 +462,38 @@ export function DashboardScreen() {
         </div>
 
         {/* Chart */}
-        <div className="h-44 md:h-48 w-full mt-2">
+        <div className="h-56 md:h-64 w-full mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barCategoryGap="20%">
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-              <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={9} tickFormatter={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : v} tickLine={false} axisLine={false} width={30} />
-              <Tooltip
-                formatter={(val: any, name: any) => [formatPKR(Number(val)), name]}
-                contentStyle={{ backgroundColor: '#fff', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', fontSize: '11px', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
+            <BarChart data={chartData} barCategoryGap="25%" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,0,0,0.05)" vertical={false} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dy={10} />
+              <YAxis 
+                stroke="#64748b" 
+                fontSize={10} 
+                tickFormatter={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : v} 
+                tickLine={false} 
+                axisLine={false} 
+                width={40} 
               />
-              <Bar dataKey="Sales" fill="#141414" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Expenses" fill="#E06349" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Profit" fill="#10b981" radius={[6, 6, 0, 0]} />
+              <Tooltip
+                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                formatter={(val: any, name: any) => [
+                  <span className="font-mono font-bold">{formatPKR(Number(val))}</span>, 
+                  <span className="capitalize">{name}</span>
+                ]}
+                contentStyle={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                  borderRadius: '16px', 
+                  border: '1px solid rgba(0,0,0,0.06)', 
+                  fontSize: '12px', 
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '12px'
+                }}
+              />
+              <Bar dataKey="Sales" fill="#141414" radius={[6, 6, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="Expenses" fill="#E06349" radius={[6, 6, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="Profit" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} />
             </BarChart>
           </ResponsiveContainer>
         </div>
