@@ -45,7 +45,7 @@ export function DesktopSidebar() {
   const visibleNavItems = allNavigationItems.filter((item) => canAccessTab(item.id));
 
   return (
-    <aside className="hidden md:flex md:w-60 lg:w-64 flex-col border-r border-black/[0.08] bg-white shrink-0 select-none">
+    <aside className="hidden md:flex md:w-60 lg:w-64 flex-col border-r border-black/[0.08] bg-white shrink-0 select-none sticky top-0 h-screen">
       {/* Brand Header */}
       <div className="flex h-16 items-center gap-3 px-5 border-b border-black/[0.08]">
         <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#141414] text-white shadow-sm font-bold text-xs">
