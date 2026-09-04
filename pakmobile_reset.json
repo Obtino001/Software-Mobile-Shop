@@ -1,0 +1,817 @@
+{
+  "partners": [
+    {
+      "id": "partner_kaqm98w",
+      "name": "Yasir",
+      "initialInvestment": 250000,
+      "additionalInvestment": 0,
+      "totalInvestment": 250000,
+      "withdrawals": 0,
+      "ownershipPercentage": 50,
+      "createdAt": "2026-08-01T10:00:00.000Z"
+    },
+    {
+      "id": "partner_mexadrb",
+      "name": "Saad",
+      "initialInvestment": 250000,
+      "additionalInvestment": 0,
+      "totalInvestment": 250000,
+      "withdrawals": 0,
+      "ownershipPercentage": 50,
+      "createdAt": "2026-08-01T10:00:00.000Z"
+    }
+  ],
+  "mobiles": [],
+  "phones": [],
+  "purchases": [],
+  "sales": [
+    {
+      "id": "sale_august_ledger_profit",
+      "mobileId": "mob_august_summary",
+      "customerName": "August Mobile Trading (Walk-in Customers)",
+      "customerPhone": "Walk-in",
+      "sellingPrice": 19500,
+      "costPrice": 0,
+      "profit": 19500,
+      "paymentMethod": "Cash",
+      "date": "2026-08-31T18:00:00.000Z",
+      "notes": "Total gross trading profit for August recorded from notebook reconciliation ledger",
+      "soldBy": "Yasir & Saad"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp_20260806_1",
+      "category": "Electricity",
+      "title": "Cable / Taar for fan + supply (One-Time)",
+      "amount": 300,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Cable / Taar"
+    },
+    {
+      "id": "exp_20260806_2",
+      "category": "Electricity",
+      "title": "Supply (One-Time)",
+      "amount": 1000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Power Supply"
+    },
+    {
+      "id": "exp_20260806_3",
+      "category": "Electricity",
+      "title": "Lights (One-Time)",
+      "amount": 300,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Shop Lights"
+    },
+    {
+      "id": "exp_20260806_4",
+      "category": "Other",
+      "title": "Tech / Tools (One-Time)",
+      "amount": 500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Tech"
+    },
+    {
+      "id": "exp_20260806_5",
+      "category": "Other",
+      "title": "Chairs (One-Time)",
+      "amount": 8500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Chairs"
+    },
+    {
+      "id": "exp_20260806_6",
+      "category": "Electricity",
+      "title": "Extension (One-Time)",
+      "amount": 650,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Extension Board"
+    },
+    {
+      "id": "exp_20260806_7",
+      "category": "Other",
+      "title": "Artificial grass for counter (One-Time)",
+      "amount": 500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Counter Grass"
+    },
+    {
+      "id": "exp_20260806_8",
+      "category": "Electricity",
+      "title": "Fan (One-Time)",
+      "amount": 1000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Fan"
+    },
+    {
+      "id": "exp_20260806_9",
+      "category": "Internet",
+      "title": "Internet (wifi) 6/August (One-Time)",
+      "amount": 600,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Wifi Internet"
+    },
+    {
+      "id": "exp_20260806_10",
+      "category": "Accessories",
+      "title": "Mobile cooler fan CX07 (One-Time)",
+      "amount": 2000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Mobile Cooler Fan CX07"
+    },
+    {
+      "id": "exp_20260806_11",
+      "category": "Other",
+      "title": "Bill Pad + Thumb Pad + stapler + carbon paper (One-Time)",
+      "amount": 520,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "One Time Expense for Shop - Stationery"
+    },
+    {
+      "id": "exp_20260805_12",
+      "category": "Food",
+      "title": "100 Pani, 30 Copy, 120 Khana",
+      "amount": 250,
+      "date": "2026-08-05T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260806_13",
+      "category": "Food",
+      "title": "100 Pani, 150 Khana",
+      "amount": 250,
+      "date": "2026-08-06T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260807_14",
+      "category": "Transport",
+      "title": "Karachi for Purchasing",
+      "amount": 3000,
+      "date": "2026-08-07T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense - Karachi Trip"
+    },
+    {
+      "id": "exp_20260807_15",
+      "category": "Food",
+      "title": "Food",
+      "amount": 600,
+      "date": "2026-08-07T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260808_16",
+      "category": "Electricity",
+      "title": "Lights",
+      "amount": 300,
+      "date": "2026-08-08T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260808_17",
+      "category": "Water",
+      "title": "Pani",
+      "amount": 100,
+      "date": "2026-08-08T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260808_18",
+      "category": "Food",
+      "title": "Paan",
+      "amount": 50,
+      "date": "2026-08-08T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260808_19",
+      "category": "Accessories",
+      "title": "Samsung S20+ Protector Yasir",
+      "amount": 500,
+      "date": "2026-08-08T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260809_20",
+      "category": "Food",
+      "title": "Tea",
+      "amount": 40,
+      "date": "2026-08-09T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260811_21",
+      "category": "Water",
+      "title": "Pani",
+      "amount": 100,
+      "date": "2026-08-11T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260812_22",
+      "category": "Food",
+      "title": "Water and Food",
+      "amount": 300,
+      "date": "2026-08-12T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260813_23",
+      "category": "Food",
+      "title": "Water and Food",
+      "amount": 300,
+      "date": "2026-08-13T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260815_24",
+      "category": "Accessories",
+      "title": "50 Glass Moto G 2024, 100 Pani, 200 Food, 100 Glass",
+      "amount": 400,
+      "date": "2026-08-15T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260816_25",
+      "category": "Accessories",
+      "title": "400 Protector ONN Tab, 300 Food+Water",
+      "amount": 700,
+      "date": "2026-08-16T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260817_26",
+      "category": "Transport",
+      "title": "Bus Rent, Rikshaw, Bykea, Petrol, Food in Karachi",
+      "amount": 4750,
+      "date": "2026-08-17T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense - Karachi Tour 2"
+    },
+    {
+      "id": "exp_20260820_27",
+      "category": "Food",
+      "title": "Water and Food",
+      "amount": 300,
+      "date": "2026-08-20T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260822_28",
+      "category": "Transport",
+      "title": "TCS for Moto g Power 2025",
+      "amount": 610,
+      "date": "2026-08-22T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense - Return TCS"
+    },
+    {
+      "id": "exp_20260822_29",
+      "category": "Food",
+      "title": "Water and food",
+      "amount": 300,
+      "date": "2026-08-22T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260823_30",
+      "category": "Water",
+      "title": "Water",
+      "amount": 100,
+      "date": "2026-08-23T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260824_31",
+      "category": "Water",
+      "title": "Water",
+      "amount": 100,
+      "date": "2026-08-24T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260825_32",
+      "category": "Water",
+      "title": "Water",
+      "amount": 100,
+      "date": "2026-08-25T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260829_33",
+      "category": "Accessories",
+      "title": "Water and Panni on S2+",
+      "amount": 250,
+      "date": "2026-08-29T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260830_34",
+      "category": "Food",
+      "title": "Water and Food",
+      "amount": 340,
+      "date": "2026-08-30T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260831_35",
+      "category": "Food",
+      "title": "Water and Food",
+      "amount": 340,
+      "date": "2026-08-31T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Daily Expense"
+    },
+    {
+      "id": "exp_20260901_36",
+      "category": "Rent",
+      "title": "Shop Rent September (Advance)",
+      "amount": 15000,
+      "date": "2026-09-01T10:00:00.000Z",
+      "paymentMethod": "Cash",
+      "paidFrom": "cash",
+      "notes": "Shop Rent September 15000 as per Ledger Sheet"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "txn_init_yasir",
+      "type": "Partner Investment",
+      "category": "Capital In",
+      "amount": 250000,
+      "date": "2026-08-01T10:00:00.000Z",
+      "description": "Initial Capital Investment - Yasir",
+      "account": "cash",
+      "recordedBy": "Admin"
+    },
+    {
+      "id": "txn_init_saad",
+      "type": "Partner Investment",
+      "category": "Capital In",
+      "amount": 250000,
+      "date": "2026-08-01T10:00:00.000Z",
+      "description": "Initial Capital Investment - Saad",
+      "account": "cash",
+      "recordedBy": "Admin"
+    },
+    {
+      "id": "txn_exp_20260806_1",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 300,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Cable / Taar for fan + supply (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_1"
+    },
+    {
+      "id": "txn_exp_20260806_2",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 1000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Supply (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_2"
+    },
+    {
+      "id": "txn_exp_20260806_3",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 300,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Lights (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_3"
+    },
+    {
+      "id": "txn_exp_20260806_4",
+      "type": "Expense",
+      "category": "Other",
+      "amount": 500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Tech / Tools (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_4"
+    },
+    {
+      "id": "txn_exp_20260806_5",
+      "type": "Expense",
+      "category": "Other",
+      "amount": 8500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Chairs (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_5"
+    },
+    {
+      "id": "txn_exp_20260806_6",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 650,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Extension (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_6"
+    },
+    {
+      "id": "txn_exp_20260806_7",
+      "type": "Expense",
+      "category": "Other",
+      "amount": 500,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Artificial grass for counter (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_7"
+    },
+    {
+      "id": "txn_exp_20260806_8",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 1000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Fan (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_8"
+    },
+    {
+      "id": "txn_exp_20260806_9",
+      "type": "Expense",
+      "category": "Internet",
+      "amount": 600,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Internet (wifi) 6/August (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_9"
+    },
+    {
+      "id": "txn_exp_20260806_10",
+      "type": "Expense",
+      "category": "Accessories",
+      "amount": 2000,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Mobile cooler fan CX07 (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_10"
+    },
+    {
+      "id": "txn_exp_20260806_11",
+      "type": "Expense",
+      "category": "Other",
+      "amount": 520,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "Bill Pad + Thumb Pad + stapler + carbon paper (One-Time)",
+      "account": "cash",
+      "referenceId": "exp_20260806_11"
+    },
+    {
+      "id": "txn_exp_20260805_12",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 250,
+      "date": "2026-08-05T10:00:00.000Z",
+      "description": "100 Pani, 30 Copy, 120 Khana",
+      "account": "cash",
+      "referenceId": "exp_20260805_12"
+    },
+    {
+      "id": "txn_exp_20260806_13",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 250,
+      "date": "2026-08-06T10:00:00.000Z",
+      "description": "100 Pani, 150 Khana",
+      "account": "cash",
+      "referenceId": "exp_20260806_13"
+    },
+    {
+      "id": "txn_exp_20260807_14",
+      "type": "Expense",
+      "category": "Transport",
+      "amount": 3000,
+      "date": "2026-08-07T10:00:00.000Z",
+      "description": "Karachi for Purchasing",
+      "account": "cash",
+      "referenceId": "exp_20260807_14"
+    },
+    {
+      "id": "txn_exp_20260807_15",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 600,
+      "date": "2026-08-07T10:00:00.000Z",
+      "description": "Food",
+      "account": "cash",
+      "referenceId": "exp_20260807_15"
+    },
+    {
+      "id": "txn_exp_20260808_16",
+      "type": "Expense",
+      "category": "Electricity",
+      "amount": 300,
+      "date": "2026-08-08T10:00:00.000Z",
+      "description": "Lights",
+      "account": "cash",
+      "referenceId": "exp_20260808_16"
+    },
+    {
+      "id": "txn_exp_20260808_17",
+      "type": "Expense",
+      "category": "Water",
+      "amount": 100,
+      "date": "2026-08-08T10:00:00.000Z",
+      "description": "Pani",
+      "account": "cash",
+      "referenceId": "exp_20260808_17"
+    },
+    {
+      "id": "txn_exp_20260808_18",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 50,
+      "date": "2026-08-08T10:00:00.000Z",
+      "description": "Paan",
+      "account": "cash",
+      "referenceId": "exp_20260808_18"
+    },
+    {
+      "id": "txn_exp_20260808_19",
+      "type": "Expense",
+      "category": "Accessories",
+      "amount": 500,
+      "date": "2026-08-08T10:00:00.000Z",
+      "description": "Samsung S20+ Protector Yasir",
+      "account": "cash",
+      "referenceId": "exp_20260808_19"
+    },
+    {
+      "id": "txn_exp_20260809_20",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 40,
+      "date": "2026-08-09T10:00:00.000Z",
+      "description": "Tea",
+      "account": "cash",
+      "referenceId": "exp_20260809_20"
+    },
+    {
+      "id": "txn_exp_20260811_21",
+      "type": "Expense",
+      "category": "Water",
+      "amount": 100,
+      "date": "2026-08-11T10:00:00.000Z",
+      "description": "Pani",
+      "account": "cash",
+      "referenceId": "exp_20260811_21"
+    },
+    {
+      "id": "txn_exp_20260812_22",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 300,
+      "date": "2026-08-12T10:00:00.000Z",
+      "description": "Water and Food",
+      "account": "cash",
+      "referenceId": "exp_20260812_22"
+    },
+    {
+      "id": "txn_exp_20260813_23",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 300,
+      "date": "2026-08-13T10:00:00.000Z",
+      "description": "Water and Food",
+      "account": "cash",
+      "referenceId": "exp_20260813_23"
+    },
+    {
+      "id": "txn_exp_20260815_24",
+      "type": "Expense",
+      "category": "Accessories",
+      "amount": 400,
+      "date": "2026-08-15T10:00:00.000Z",
+      "description": "50 Glass Moto G 2024, 100 Pani, 200 Food, 100 Glass",
+      "account": "cash",
+      "referenceId": "exp_20260815_24"
+    },
+    {
+      "id": "txn_exp_20260816_25",
+      "type": "Expense",
+      "category": "Accessories",
+      "amount": 700,
+      "date": "2026-08-16T10:00:00.000Z",
+      "description": "400 Protector ONN Tab, 300 Food+Water",
+      "account": "cash",
+      "referenceId": "exp_20260816_25"
+    },
+    {
+      "id": "txn_exp_20260817_26",
+      "type": "Expense",
+      "category": "Transport",
+      "amount": 4750,
+      "date": "2026-08-17T10:00:00.000Z",
+      "description": "Bus Rent, Rikshaw, Bykea, Petrol, Food in Karachi",
+      "account": "cash",
+      "referenceId": "exp_20260817_26"
+    },
+    {
+      "id": "txn_exp_20260820_27",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 300,
+      "date": "2026-08-20T10:00:00.000Z",
+      "description": "Water and Food",
+      "account": "cash",
+      "referenceId": "exp_20260820_27"
+    },
+    {
+      "id": "txn_exp_20260822_28",
+      "type": "Expense",
+      "category": "Transport",
+      "amount": 610,
+      "date": "2026-08-22T10:00:00.000Z",
+      "description": "TCS for Moto g Power 2025",
+      "account": "cash",
+      "referenceId": "exp_20260822_28"
+    },
+    {
+      "id": "txn_exp_20260822_29",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 300,
+      "date": "2026-08-22T10:00:00.000Z",
+      "description": "Water and food",
+      "account": "cash",
+      "referenceId": "exp_20260822_29"
+    },
+    {
+      "id": "txn_exp_20260823_30",
+      "type": "Expense",
+      "category": "Water",
+      "amount": 100,
+      "date": "2026-08-23T10:00:00.000Z",
+      "description": "Water",
+      "account": "cash",
+      "referenceId": "exp_20260823_30"
+    },
+    {
+      "id": "txn_exp_20260824_31",
+      "type": "Expense",
+      "category": "Water",
+      "amount": 100,
+      "date": "2026-08-24T10:00:00.000Z",
+      "description": "Water",
+      "account": "cash",
+      "referenceId": "exp_20260824_31"
+    },
+    {
+      "id": "txn_exp_20260825_32",
+      "type": "Expense",
+      "category": "Water",
+      "amount": 100,
+      "date": "2026-08-25T10:00:00.000Z",
+      "description": "Water",
+      "account": "cash",
+      "referenceId": "exp_20260825_32"
+    },
+    {
+      "id": "txn_exp_20260829_33",
+      "type": "Expense",
+      "category": "Accessories",
+      "amount": 250,
+      "date": "2026-08-29T10:00:00.000Z",
+      "description": "Water and Panni on S2+",
+      "account": "cash",
+      "referenceId": "exp_20260829_33"
+    },
+    {
+      "id": "txn_exp_20260830_34",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 340,
+      "date": "2026-08-30T10:00:00.000Z",
+      "description": "Water and Food",
+      "account": "cash",
+      "referenceId": "exp_20260830_34"
+    },
+    {
+      "id": "txn_exp_20260831_35",
+      "type": "Expense",
+      "category": "Food",
+      "amount": 340,
+      "date": "2026-08-31T10:00:00.000Z",
+      "description": "Water and Food",
+      "account": "cash",
+      "referenceId": "exp_20260831_35"
+    },
+    {
+      "id": "txn_exp_20260901_36",
+      "type": "Expense",
+      "category": "Rent",
+      "amount": 15000,
+      "date": "2026-09-01T10:00:00.000Z",
+      "description": "Shop Rent September (Advance)",
+      "account": "cash",
+      "referenceId": "exp_20260901_36"
+    },
+    {
+      "id": "txn_sale_august_profit",
+      "type": "Sale Income",
+      "category": "Trading Profit",
+      "amount": 19500,
+      "date": "2026-08-31T18:00:00.000Z",
+      "description": "August Mobile Sales Gross Profit (Notebook Ledger)",
+      "account": "cash",
+      "referenceId": "sale_august_ledger_profit"
+    }
+  ],
+  "budgets": [],
+  "settings": {
+    "businessName": "Yasir & Saad Mobile Trading",
+    "shopName": "Yasir & Saad Mobile Trading",
+    "currency": "PKR",
+    "monthlyExpenseTarget": 35000,
+    "defaultPartnerSplit": 50,
+    "tagline": "Premium Used & New Smartphones | Hall Road Quality",
+    "phone": "+92 300 1234567 / +92 301 9876543",
+    "address": "Shop # 14, Ground Floor, Al-Hafeez Shopping Mall",
+    "city": "Lahore, Pakistan",
+    "defaultWarrantyDays": 7,
+    "theme": "dark",
+    "categoryBudgets": {
+      "Food": 6000,
+      "Water": 1500,
+      "Transport": 8500,
+      "Rent": 15000,
+      "Electricity": 4000
+    }
+  }
+}

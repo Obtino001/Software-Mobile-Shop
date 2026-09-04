@@ -1,0 +1,18 @@
+{
+  "name": "Yasir & Saad Mobile Trading ERP",
+  "short_name": "PakMobile ERP",
+  "description": "Mobile Phone Trading Management Application for Yasir & Saad Mobile Trading",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F8F8",
+  "theme_color": "#E06349",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
