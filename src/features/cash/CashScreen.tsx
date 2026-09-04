@@ -441,7 +441,7 @@ export function CashScreen() {
       <ConfirmDialog
         isOpen={isDeleteOpen}
         title="Delete Transaction?"
-        description="This will permanently delete this cash transaction. This may affect your cash/bank balances. Are you absolutely sure?"
+        message="This will permanently delete this cash transaction. This may affect your cash/bank balances. Are you absolutely sure?"
         confirmText="Yes, Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}

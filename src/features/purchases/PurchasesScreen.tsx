@@ -17,6 +17,21 @@ export function PurchasesScreen() {
   const { purchases, openQuickPurchase, getTotalPurchases, getStockCount } = useAppStore();
   const { hasPermission, partnerName } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const { success, error: toastError } = useToast();
+  
+  const canEditRecords = hasPermission('records:edit');
+  
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+  
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+  
+  const [editForm, setEditForm] = useState({
+    supplier: '',
+    amount: '',
+    notes: ''
+  });
 
   const canViewFinancials = hasPermission('financials:view');
   const totalSpent = getTotalPurchases();
@@ -287,7 +302,7 @@ export function PurchasesScreen() {
       <ConfirmDialog
         isOpen={isDeleteOpen}
         title="Delete Purchase Record?"
-        description="This will permanently delete the purchase and any associated cash outflow. The phone will remain in inventory unless deleted separately. Are you absolutely sure?"
+        message="This will permanently delete the purchase and any associated cash outflow. The phone will remain in inventory unless deleted separately. Are you absolutely sure?"
         confirmText="Yes, Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}

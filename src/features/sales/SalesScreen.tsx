@@ -15,7 +15,8 @@ import {
   TrendingUp, 
   CheckCircle2,
   Trash2,
-  Edit3
+  Edit3,
+  Smartphone
 } from 'lucide-react';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
@@ -344,7 +345,7 @@ export function SalesScreen() {
       <ConfirmDialog
         isOpen={isDeleteOpen}
         title="Delete Sale Record?"
-        description="This will permanently delete the sale and any associated cash inflow. Are you absolutely sure?"
+        message="This will permanently delete the sale and any associated cash inflow. Are you absolutely sure?"
         confirmText="Yes, Delete"
         cancelText="Cancel"
         onConfirm={confirmDelete}

@@ -388,7 +388,7 @@ export function ExpensesScreen() {
         onClose={() => setExpenseToDelete(null)}
         onConfirm={handleDelete}
         title="Delete Expense Record"
-        message="Are you sure you want to delete this expense? This will restore the balance to your account."
+        message="This will permanently delete this expense record. Are you absolutely sure?"
         confirmText="Delete Expense"
       />
     </div>
