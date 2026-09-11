@@ -16,7 +16,7 @@ function MainApp() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Fetch fresh data from Supabase PostgreSQL cloud database on mount
+      // Fetch fresh data from Firebase PostgreSQL cloud database on mount
       fetchInitialData();
 
       // Listen for realtime postgres_changes from other partner's device

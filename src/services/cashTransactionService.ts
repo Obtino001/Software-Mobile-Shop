@@ -1,34 +1,30 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { DbCashTransaction } from '../types/database';
 import { CashTransaction, CashTransactionType } from '../types';
 import { formatDatabaseError } from './errorHandler';
 
-export function mapDbTransactionToCashTransaction(db: DbCashTransaction): CashTransaction {
+export function mapDbTransactionToCashTransaction(dbId: string, t: any): CashTransaction {
   return {
-    id: db.id,
-    type: db.type as CashTransactionType,
-    category: db.category,
-    amount: Number(db.amount || 0),
-    description: db.description,
-    account: db.account,
-    date: db.date,
-    referenceId: db.reference_id || undefined,
+    id: dbId,
+    type: t.type as CashTransactionType,
+    category: t.category,
+    amount: Number(t.amount || 0),
+    description: t.description,
+    account: t.account,
+    date: t.date,
+    referenceId: t.reference_id || undefined,
   };
 }
 
 export class CashTransactionService {
   async fetchTransactions(): Promise<{ data: CashTransaction[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('cash_transactions')
-        .select('*')
-        .order('date', { ascending: false });
+      const q = query(collection(db, 'cash_transactions'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
 
-      if (error) {
-        return { data: [], error: formatDatabaseError(error, 'fetch cash transactions') };
-      }
-
-      return { data: (data || []).map(mapDbTransactionToCashTransaction) };
+      const transactions = snapshot.docs.map(docSnap => mapDbTransactionToCashTransaction(docSnap.id, docSnap.data()));
+      return { data: transactions };
     } catch (err) {
       return { data: [], error: formatDatabaseError(err, 'fetch cash transactions') };
     }
@@ -44,25 +40,19 @@ export class CashTransactionService {
     referenceId?: string;
   }): Promise<{ data: CashTransaction | null; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('cash_transactions')
-        .insert({
-          type: tx.type,
-          category: tx.category,
-          amount: tx.amount,
-          description: tx.description,
-          account: tx.account,
-          date: tx.date || new Date().toISOString(),
-          reference_id: tx.referenceId,
-        })
-        .select('*')
-        .single();
+      const payload = {
+        type: tx.type,
+        category: tx.category,
+        amount: tx.amount,
+        description: tx.description,
+        account: tx.account,
+        date: tx.date || new Date().toISOString(),
+        reference_id: tx.referenceId || null,
+      };
 
-      if (error) {
-        return { data: null, error: formatDatabaseError(error, 'record cash transaction') };
-      }
+      const docRef = await addDoc(collection(db, 'cash_transactions'), payload);
 
-      return { data: mapDbTransactionToCashTransaction(data) };
+      return { data: mapDbTransactionToCashTransaction(docRef.id, payload) };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'record cash transaction') };
     }
@@ -80,7 +70,7 @@ export class CashTransactionService {
       const fromLabel = params.from === 'cash' ? 'Cash Counter' : 'Bank Account';
       const toLabel = params.to === 'cash' ? 'Cash Counter' : 'Bank Account';
 
-      const { error: outErr } = await supabase.from('cash_transactions').insert({
+      await addDoc(collection(db, 'cash_transactions'), {
         type: 'Other Expense',
         category: 'Internal Fund Transfer',
         amount: params.amount,
@@ -89,11 +79,7 @@ export class CashTransactionService {
         date: nowIso,
       });
 
-      if (outErr) {
-        return { success: false, error: formatDatabaseError(outErr, 'record transfer withdrawal') };
-      }
-
-      const { error: inErr } = await supabase.from('cash_transactions').insert({
+      await addDoc(collection(db, 'cash_transactions'), {
         type: 'Other Income',
         category: 'Internal Fund Transfer',
         amount: params.amount,
@@ -101,10 +87,6 @@ export class CashTransactionService {
         account: params.to,
         date: nowIso,
       });
-
-      if (inErr) {
-        return { success: false, error: formatDatabaseError(inErr, 'record transfer receipt') };
-      }
 
       return { success: true };
     } catch (err) {
@@ -114,14 +96,7 @@ export class CashTransactionService {
 
   async deleteTransaction(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('cash_transactions')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete transaction') };
-      }
+      await deleteDoc(doc(db, 'cash_transactions', id));
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'delete transaction') };
@@ -138,10 +113,7 @@ export class CashTransactionService {
       if (updates.account !== undefined) dbUpdates.account = updates.account;
       if (updates.date !== undefined) dbUpdates.date = updates.date;
 
-      const { error } = await supabase.from('cash_transactions').update(dbUpdates).eq('id', id);
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update transaction') };
-      }
+      await updateDoc(doc(db, 'cash_transactions', id), dbUpdates);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update transaction') };

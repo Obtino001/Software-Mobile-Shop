@@ -1,52 +1,47 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy } from 'firebase/firestore';
 import { DbMobileInventory, DbMobileStatus } from '../types/database';
 import { MobileProduct } from '../types';
 import { formatDatabaseError } from './errorHandler';
 
-export function mapDbMobileToMobileProduct(db: DbMobileInventory): MobileProduct {
-  const purchasePrice = Number(db.purchase_price || 0);
-  const refurbCost = Number(db.refurb_cost || 0);
+export function mapDbMobileToMobileProduct(dbId: string, m: any): MobileProduct {
+  const purchasePrice = Number(m.purchase_price || 0);
+  const refurbCost = Number(m.refurb_cost || 0);
   return {
-    id: db.id,
-    brand: db.brand,
-    model: db.model,
-    variant: db.variant || `${db.storage} • ${db.color}`,
-    storage: db.storage,
-    ram: db.ram || undefined,
-    color: db.color,
-    imei: db.imei,
-    serialNumber: db.serial_number || undefined,
-    condition: db.condition,
+    id: dbId,
+    brand: m.brand,
+    model: m.model,
+    variant: m.variant || `${m.storage} • ${m.color}`,
+    storage: m.storage,
+    ram: m.ram || undefined,
+    color: m.color,
+    imei: m.imei,
+    serialNumber: m.serial_number || undefined,
+    condition: m.condition,
     purchasePrice,
     refurbCost,
     totalCost: purchasePrice + refurbCost,
-    sellingPrice: Number(db.expected_selling_price || 0),
-    purchaseSource: db.purchase_source || undefined,
-    purchaseDate: db.purchase_date,
-    saleDate: db.sale_date || undefined,
-    status: db.status,
-    notes: db.notes || undefined,
-    accessories: db.accessories || [],
-    ptaStatus: db.pta_status as any,
-    batteryHealth: db.battery_health ?? undefined,
-    createdAt: db.created_at,
-    imei1: db.imei,
+    sellingPrice: Number(m.expected_selling_price || 0),
+    purchaseSource: m.purchase_source || undefined,
+    purchaseDate: m.purchase_date,
+    saleDate: m.sale_date || undefined,
+    status: m.status as DbMobileStatus,
+    notes: m.notes || undefined,
+    accessories: m.accessories || [],
+    ptaStatus: m.pta_status as any,
+    batteryHealth: m.battery_health ?? undefined,
+    createdAt: m.created_at,
+    imei1: m.imei,
   };
 }
 
 export class InventoryService {
   async fetchInventory(): Promise<{ data: MobileProduct[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('mobile_inventory')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { data: [], error: formatDatabaseError(error, 'fetch mobile inventory') };
-      }
-
-      return { data: (data || []).map(mapDbMobileToMobileProduct) };
+      const q = query(collection(db, 'mobile_inventory'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => mapDbMobileToMobileProduct(doc.id, doc.data()));
+      return { data };
     } catch (err) {
       return { data: [], error: formatDatabaseError(err, 'fetch mobile inventory') };
     }
@@ -54,37 +49,31 @@ export class InventoryService {
 
   async createMobile(mobile: Omit<MobileProduct, 'id' | 'createdAt'>): Promise<{ data: MobileProduct | null; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('mobile_inventory')
-        .insert({
-          brand: mobile.brand,
-          model: mobile.model,
-          variant: mobile.variant,
-          storage: mobile.storage,
-          ram: mobile.ram,
-          color: mobile.color,
-          imei: mobile.imei,
-          serial_number: mobile.serialNumber,
-          condition: mobile.condition,
-          purchase_price: mobile.purchasePrice,
-          expected_selling_price: mobile.sellingPrice,
-          purchase_source: mobile.purchaseSource,
-          purchase_date: mobile.purchaseDate,
-          status: mobile.status as DbMobileStatus,
-          notes: mobile.notes,
-          accessories: mobile.accessories,
-          pta_status: mobile.ptaStatus,
-          battery_health: mobile.batteryHealth,
-          refurb_cost: mobile.refurbCost || 0,
-        })
-        .select('*')
-        .single();
-
-      if (error) {
-        return { data: null, error: formatDatabaseError(error, 'save mobile to inventory') };
-      }
-
-      return { data: mapDbMobileToMobileProduct(data) };
+      const payload = {
+        brand: mobile.brand,
+        model: mobile.model,
+        variant: mobile.variant,
+        storage: mobile.storage,
+        ram: mobile.ram,
+        color: mobile.color,
+        imei: mobile.imei,
+        serial_number: mobile.serialNumber,
+        condition: mobile.condition,
+        purchase_price: mobile.purchasePrice,
+        expected_selling_price: mobile.sellingPrice,
+        purchase_source: mobile.purchaseSource,
+        purchase_date: mobile.purchaseDate,
+        status: mobile.status,
+        notes: mobile.notes,
+        accessories: mobile.accessories,
+        pta_status: mobile.ptaStatus,
+        battery_health: mobile.batteryHealth,
+        refurb_cost: mobile.refurbCost || 0,
+        created_at: new Date().toISOString(),
+      };
+      
+      const docRef = await addDoc(collection(db, 'mobile_inventory'), payload);
+      return { data: mapDbMobileToMobileProduct(docRef.id, payload) };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'save mobile to inventory') };
     }
@@ -107,15 +96,7 @@ export class InventoryService {
       if (updates.batteryHealth !== undefined) dbPayload.battery_health = updates.batteryHealth;
       if (updates.accessories !== undefined) dbPayload.accessories = updates.accessories;
 
-      const { error } = await supabase
-        .from('mobile_inventory')
-        .update(dbPayload)
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update mobile product') };
-      }
-
+      await updateDoc(doc(db, 'mobile_inventory', id), dbPayload);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update mobile product') };
@@ -124,15 +105,7 @@ export class InventoryService {
 
   async deleteMobile(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('mobile_inventory')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete mobile device') };
-      }
-
+      await deleteDoc(doc(db, 'mobile_inventory', id));
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'delete mobile device') };

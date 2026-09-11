@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { User, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
   UserRole, 
   Permission, 
@@ -11,7 +13,7 @@ import { NavigationTab } from '../types';
 
 interface AuthState {
   user: User | null;
-  session: Session | null;
+  session: any | null; // Compatibility
   partnerName: 'Yasir' | 'Saad' | string;
   role: UserRole;
   avatarUrl: string | null;
@@ -40,7 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   avatarUrl: null,
   isLoading: true,
   isAuthenticated: false,
-  isConfigured: isSupabaseConfigured(),
+  isConfigured: isFirebaseConfigured(),
 
   hasPermission: (permission: Permission) => {
     return checkPermission(get().role, permission);
@@ -51,11 +53,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   initAuth: async () => {
-    const configured = isSupabaseConfigured();
+    const configured = isFirebaseConfigured();
     set({ isConfigured: configured });
 
     if (!configured) {
-      // In development / demo mode before connecting live cloud Supabase project
+      // In development / demo mode before connecting live cloud Firebase project
       const savedPartner = (localStorage.getItem('pakmobile_demo_partner') as 'Yasir' | 'Saad') || 'Yasir';
       const savedRole: UserRole = savedPartner.toLowerCase() === 'saad' ? 'manager' : 'owner';
 
@@ -69,93 +71,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      // 1. Secure session retrieval from Supabase persistence
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.warn('[useAuthStore] getSession warning:', sessionError.message);
-      }
-
-      if (session?.user) {
-        const email = session.user.email || '';
-        const metaName = session.user.user_metadata?.name || '';
-        const derivedName = metaName || (email.toLowerCase().includes('saad') ? 'Saad' : 'Yasir');
-        
-        // Default role derived from email/name unless profile row overrides
-        let derivedRole: UserRole = derivedName.toLowerCase() === 'saad' ? 'manager' : 'owner';
-        let userAvatar: string | null = session.user.user_metadata?.avatar_url || null;
-
-        // 2. Fetch role from public.profiles table (enforced by RLS)
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, name, avatar_url')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (profile) {
-            if (profile.role === 'owner' || profile.role === 'manager') {
-              derivedRole = profile.role;
-            }
-            if (profile.name) {
-              // use official profile name
-            }
-            if (profile.avatar_url) {
-              userAvatar = profile.avatar_url;
-            }
-          }
-        } catch (profileErr) {
-          console.warn('[useAuthStore] Could not load profile:', profileErr);
-        }
-
-        set({
-          user: session.user,
-          session,
-          isAuthenticated: true,
-          partnerName: derivedName,
-          role: derivedRole,
-          avatarUrl: userAvatar,
-          isLoading: false,
-        });
-      } else {
-        // No active session found
-        set({
-          user: null,
-          session: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-
-      // 3. Listen to Supabase auth state changes (sign in, token refresh, sign out)
-      supabase.auth.onAuthStateChange(async (_event, newSession) => {
-        if (newSession?.user) {
-          const email = newSession.user.email || '';
-          const metaName = newSession.user.user_metadata?.name || '';
+      // Listen to Firebase auth state changes (sign in, token refresh, sign out)
+      onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          const email = firebaseUser.email || '';
+          const metaName = firebaseUser.displayName || '';
           const derivedName = metaName || (email.toLowerCase().includes('saad') ? 'Saad' : 'Yasir');
+          
           let derivedRole: UserRole = derivedName.toLowerCase() === 'saad' ? 'manager' : 'owner';
-          let userAvatar: string | null = newSession.user.user_metadata?.avatar_url || null;
+          let userAvatar: string | null = firebaseUser.photoURL || null;
 
           try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role, avatar_url')
-              .eq('id', newSession.user.id)
-              .maybeSingle();
-
-            if (profile?.role === 'owner' || profile?.role === 'manager') {
-              derivedRole = profile.role;
-            }
-            if (profile?.avatar_url) {
-              userAvatar = profile.avatar_url;
+            const profileRef = doc(db, 'profiles', firebaseUser.uid);
+            const profileSnap = await getDoc(profileRef);
+            
+            if (profileSnap.exists()) {
+              const profile = profileSnap.data();
+              if (profile.role === 'owner' || profile.role === 'manager') {
+                derivedRole = profile.role;
+              }
+              if (profile.avatar_url) {
+                userAvatar = profile.avatar_url;
+              }
             }
           } catch {
             // keep derived role
           }
 
           set({
-            user: newSession.user,
-            session: newSession,
+            user: firebaseUser,
+            session: {}, // Dummy object for compatibility
             isAuthenticated: true,
             partnerName: derivedName,
             role: derivedRole,
@@ -179,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signIn: async (email, password) => {
     // If running in development / demo mode or before cloud connection
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       const isSaad = email.toLowerCase().includes('saad');
       const partnerName = isSaad ? 'Saad' : 'Yasir';
       const role: UserRole = isSaad ? 'manager' : 'owner';
@@ -196,55 +141,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      if (error) {
-        // Fallback for partner demo logins so testing is never blocked
-        if (email.toLowerCase().includes('yasir') || email.toLowerCase().includes('saad')) {
-          const isSaad = email.toLowerCase().includes('saad');
-          const partnerName = isSaad ? 'Saad' : 'Yasir';
-          const role: UserRole = isSaad ? 'manager' : 'owner';
-          localStorage.setItem('pakmobile_demo_partner', partnerName);
-          set({
-            isAuthenticated: true,
-            partnerName,
-            role,
-            isLoading: false,
-          });
-          return { success: true };
-        }
-        return { success: false, error: error.message };
-      }
-
-      const metaName = data.user.user_metadata?.name;
+      const metaName = user.displayName;
       const derived = metaName || (email.toLowerCase().includes('saad') ? 'Saad' : 'Yasir');
       let derivedRole: UserRole = derived.toLowerCase() === 'saad' ? 'manager' : 'owner';
-      let avatar: string | null = data.user.user_metadata?.avatar_url || null;
+      let avatar: string | null = user.photoURL || null;
 
-      // Query role from profiles
       try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, avatar_url')
-          .eq('id', data.user.id)
-          .maybeSingle();
+        const profileRef = doc(db, 'profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
 
-        if (profile?.role === 'owner' || profile?.role === 'manager') {
-          derivedRole = profile.role;
-        }
-        if (profile?.avatar_url) {
-          avatar = profile.avatar_url;
+        if (profileSnap.exists()) {
+          const profile = profileSnap.data();
+          if (profile.role === 'owner' || profile.role === 'manager') {
+            derivedRole = profile.role;
+          }
+          if (profile.avatar_url) {
+            avatar = profile.avatar_url;
+          }
         }
       } catch {
         // keep fallback
       }
 
       set({
-        user: data.user,
-        session: data.session,
+        user: user,
+        session: {},
         isAuthenticated: true,
         partnerName: derived,
         role: derivedRole,
@@ -271,10 +195,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signUp: async (email, password, name, role) => {
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       return {
         success: false,
-        error: 'Supabase is not configured yet.',
+        error: 'Firebase is not configured yet.',
       };
     }
 
@@ -285,30 +209,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     );
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-            role: assignedRole,
-          },
-        },
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      if (data.session) {
-        set({
-          user: data.user,
-          session: data.session,
-          isAuthenticated: true,
-          partnerName: name,
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      await updateProfile(user, { displayName: name });
+      
+      // Save profile to Firestore
+      try {
+        await setDoc(doc(db, 'profiles', user.uid), {
+          name: name,
           role: assignedRole,
+          created_at: new Date().toISOString()
         });
+      } catch (e) {
+        console.warn('Failed to save profile to Firestore:', e);
       }
+
+      set({
+        user: user,
+        session: {},
+        isAuthenticated: true,
+        partnerName: name,
+        role: assignedRole,
+      });
 
       return { success: true };
     } catch (err: any) {
@@ -318,8 +241,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     try {
-      if (isSupabaseConfigured()) {
-        await supabase.auth.signOut();
+      if (isFirebaseConfigured()) {
+        await firebaseSignOut(auth);
       }
     } catch (err) {
       console.warn('[useAuthStore] signOut error:', err);

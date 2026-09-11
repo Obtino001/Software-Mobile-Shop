@@ -1,27 +1,28 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, getDoc } from 'firebase/firestore';
 import { DbPurchase } from '../types/database';
 import { Purchase, MobileProduct } from '../types';
 import { formatDatabaseError } from './errorHandler';
 import { inventoryService } from './inventoryService';
 import { cashTransactionService } from './cashTransactionService';
 
-export function mapDbPurchaseToPurchase(db: DbPurchase, mobile?: MobileProduct): Purchase {
+export function mapDbPurchaseToPurchase(dbId: string, p: any, mobile?: MobileProduct): Purchase {
   return {
-    id: db.id,
-    mobileId: db.mobile_id,
-    supplier: db.supplier,
-    purchaseType: db.purchase_type,
-    amount: Number(db.amount || 0),
-    paymentMethod: db.payment_method,
-    date: db.date,
-    notes: db.notes || undefined,
+    id: dbId,
+    mobileId: p.mobile_id,
+    supplier: p.supplier,
+    purchaseType: p.purchase_type,
+    amount: Number(p.amount || 0),
+    paymentMethod: p.payment_method,
+    date: p.date,
+    notes: p.notes || undefined,
     brand: mobile?.brand,
     model: mobile?.model,
     storage: mobile?.storage,
     color: mobile?.color,
     imei: mobile?.imei,
     imei1: mobile?.imei,
-    totalCost: Number(db.amount || 0),
+    totalCost: Number(p.amount || 0),
     purchasePrice: mobile?.purchasePrice,
     repairCost: mobile?.refurbCost,
     ptaStatus: mobile?.ptaStatus,
@@ -31,46 +32,28 @@ export function mapDbPurchaseToPurchase(db: DbPurchase, mobile?: MobileProduct):
 export class PurchaseService {
   async fetchPurchases(): Promise<{ data: Purchase[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select(`
-          *,
-          mobile_inventory (*)
-        `)
-        .order('date', { ascending: false });
-
-      if (error) {
-        // Fallback without join in case foreign key join alias issues
-        const simple = await supabase.from('purchases').select('*').order('date', { ascending: false });
-        if (simple.error) {
-          return { data: [], error: formatDatabaseError(simple.error, 'fetch purchases') };
+      const q = query(collection(db, 'purchases'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
+      
+      const purchases: Purchase[] = [];
+      for (const docSnap of snapshot.docs) {
+        const pData = docSnap.data();
+        let mobile: MobileProduct | undefined = undefined;
+        
+        if (pData.mobile_id) {
+          try {
+            const mobRef = doc(db, 'mobile_inventory', pData.mobile_id);
+            const mobSnap = await getDoc(mobRef);
+            if (mobSnap.exists()) {
+              mobile = mobSnap.data() as any;
+            }
+          } catch (e) {
+            // ignore
+          }
         }
-        return { data: (simple.data || []).map((p) => mapDbPurchaseToPurchase(p)) };
+        
+        purchases.push(mapDbPurchaseToPurchase(docSnap.id, pData, mobile));
       }
-
-      const purchases: Purchase[] = (data || []).map((p: any) => {
-        const mob = p.mobile_inventory;
-        return {
-          id: p.id,
-          mobileId: p.mobile_id,
-          supplier: p.supplier,
-          purchaseType: p.purchase_type,
-          amount: Number(p.amount || 0),
-          paymentMethod: p.payment_method,
-          date: p.date,
-          notes: p.notes,
-          brand: mob?.brand,
-          model: mob?.model,
-          storage: mob?.storage,
-          color: mob?.color,
-          imei: mob?.imei,
-          imei1: mob?.imei,
-          totalCost: Number(p.amount || 0),
-          purchasePrice: mob ? Number(mob.purchase_price) : undefined,
-          repairCost: mob ? Number(mob.refurb_cost) : undefined,
-          ptaStatus: mob?.pta_status,
-        };
-      });
 
       return { data: purchases };
     } catch (err) {
@@ -78,12 +61,6 @@ export class PurchaseService {
     }
   }
 
-  /**
-   * Complete transactional intake:
-   * 1. Inserts phone into mobile_inventory
-   * 2. Inserts purchase record
-   * 3. Creates cash outflow transaction
-   */
   async createPurchase(params: {
     mobileData: Omit<MobileProduct, 'id' | 'createdAt'>;
     supplier: string;
@@ -102,25 +79,17 @@ export class PurchaseService {
       const createdMobile = mobRes.data;
 
       // 2. Insert purchase record
-      const { data: purchaseRow, error: purchaseErr } = await supabase
-        .from('purchases')
-        .insert({
-          mobile_id: createdMobile.id,
-          supplier: params.supplier,
-          purchase_type: params.purchaseType,
-          amount: params.amount,
-          payment_method: params.paymentMethod,
-          date: params.mobileData.purchaseDate || new Date().toISOString(),
-          notes: params.notes,
-        })
-        .select('*')
-        .single();
-
-      if (purchaseErr) {
-        // Rollback mobile if purchase fails
-        await inventoryService.deleteMobile(createdMobile.id);
-        return { data: null, error: formatDatabaseError(purchaseErr, 'record purchase invoice') };
-      }
+      const payload = {
+        mobile_id: createdMobile.id,
+        supplier: params.supplier,
+        purchase_type: params.purchaseType,
+        amount: params.amount,
+        payment_method: params.paymentMethod,
+        date: params.mobileData.purchaseDate || new Date().toISOString(),
+        notes: params.notes,
+      };
+      
+      const purchaseRef = await addDoc(collection(db, 'purchases'), payload);
 
       // 3. Create cash outflow transaction
       const isBank = params.paymentMethod.toLowerCase().includes('bank');
@@ -130,11 +99,11 @@ export class PurchaseService {
         amount: params.amount,
         description: `Stock In: ${createdMobile.brand} ${createdMobile.model} (${createdMobile.storage})`,
         account: isBank ? 'bank' : 'cash',
-        date: purchaseRow.date,
-        referenceId: purchaseRow.id,
+        date: payload.date,
+        referenceId: purchaseRef.id,
       });
 
-      const purchaseObj = mapDbPurchaseToPurchase(purchaseRow, createdMobile);
+      const purchaseObj = mapDbPurchaseToPurchase(purchaseRef.id, payload, createdMobile);
       return { data: { purchase: purchaseObj, mobile: createdMobile } };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'complete purchase intake') };
@@ -143,14 +112,7 @@ export class PurchaseService {
 
   async deletePurchase(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('purchases')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete purchase record') };
-      }
+      await deleteDoc(doc(db, 'purchases', id));
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'delete purchase record') };
@@ -159,7 +121,6 @@ export class PurchaseService {
 
   async updatePurchase(id: string, updates: Partial<Purchase>): Promise<{ success: boolean; error?: string }> {
     try {
-      // Create db update object
       const dbUpdates: any = {};
       if (updates.supplier !== undefined) dbUpdates.supplier = updates.supplier;
       if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
@@ -168,14 +129,7 @@ export class PurchaseService {
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
       if (updates.purchaseType !== undefined) dbUpdates.purchase_type = updates.purchaseType;
 
-      const { error } = await supabase
-        .from('purchases')
-        .update(dbUpdates)
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update purchase record') };
-      }
+      await updateDoc(doc(db, 'purchases', id), dbUpdates);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update purchase record') };

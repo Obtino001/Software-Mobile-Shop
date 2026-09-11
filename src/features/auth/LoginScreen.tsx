@@ -95,7 +95,7 @@ export function LoginScreen() {
             {isConfigured ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <Cloud className="h-3 w-3" /> Supabase Cloud Connected
+                <Cloud className="h-3 w-3" /> Firebase Cloud Connected
               </span>
             ) : (
               <button
@@ -104,7 +104,7 @@ export function LoginScreen() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-all"
               >
                 <Database className="h-3 w-3" />
-                Supabase Setup Required (Click for Guide)
+                Firebase Setup Required (Click for Guide)
               </button>
             )}
           </div>
@@ -115,7 +115,7 @@ export function LoginScreen() {
           <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 text-xs space-y-2.5 shadow-xl">
             <div className="flex items-center justify-between text-amber-400 font-bold">
               <span className="flex items-center gap-1.5">
-                <AlertCircle className="h-4 w-4" /> Connect Supabase Cloud Database
+                <AlertCircle className="h-4 w-4" /> Connect Firebase Cloud Database
               </span>
               <button
                 type="button"
@@ -129,8 +129,8 @@ export function LoginScreen() {
               To connect your live PostgreSQL database:
             </p>
             <ol className="list-decimal pl-4 space-y-1 text-slate-400 text-[11px]">
-              <li>Create a free project at <span className="text-emerald-400 font-mono">supabase.com</span>.</li>
-              <li>Execute the SQL migration script from <span className="text-emerald-400 font-mono">supabase/schema.sql</span> in the Supabase SQL Editor.</li>
+              <li>Create a free project at <span className="text-emerald-400 font-mono">firebase.com</span>.</li>
+              <li>Execute the SQL migration script from <span className="text-emerald-400 font-mono">firebase/schema.sql</span> in the Firebase SQL Editor.</li>
               <li>Paste your <span className="text-white font-mono">VITE_SUPABASE_URL</span> and <span className="text-white font-mono">VITE_SUPABASE_ANON_KEY</span> into <span className="text-white font-mono">.env</span>.</li>
             </ol>
             <div className="pt-1 flex items-center justify-between border-t border-slate-800">
@@ -246,7 +246,7 @@ export function LoginScreen() {
               className="w-full h-12 text-sm font-bold shadow-lg shadow-emerald-600/20"
             >
               {loading ? (
-                'Authenticating with Supabase...'
+                'Authenticating with Firebase...'
               ) : mode === 'signin' ? (
                 <>Sign In to Shop ERP <ArrowRight className="h-4 w-4 ml-1.5" /></>
               ) : (
@@ -272,7 +272,7 @@ export function LoginScreen() {
 
         {/* Footer info */}
         <p className="text-center text-[10px] text-slate-500">
-          Protected with PostgreSQL Row Level Security (RLS) & Supabase JWT
+          Protected with PostgreSQL Row Level Security (RLS) & Firebase JWT
         </p>
       </div>
     </div>

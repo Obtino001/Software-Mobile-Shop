@@ -1,20 +1,21 @@
-import { supabase } from '../lib/supabase';
-import { DbPartner, DbProfitDistribution } from '../types/database';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, getDoc } from 'firebase/firestore';
+import { DbPartner } from '../types/database';
 import { Partner } from '../types';
 import { formatDatabaseError } from './errorHandler';
 
-export function mapDbPartnerToPartner(db: DbPartner): Partner {
-  const initial = Number(db.initial_investment || 0);
-  const addl = Number(db.additional_investment || 0);
+export function mapDbPartnerToPartner(dbId: string, p: any): Partner {
+  const initial = Number(p.initial_investment || 0);
+  const addl = Number(p.additional_investment || 0);
   return {
-    id: db.id,
-    name: db.name,
+    id: dbId,
+    name: p.name,
     initialInvestment: initial,
     additionalInvestment: addl,
     totalInvestment: initial + addl,
-    withdrawals: Number(db.total_withdrawals || 0),
-    ownershipPercentage: Number(db.ownership_percentage || 50),
-    createdAt: db.created_at,
+    withdrawals: Number(p.total_withdrawals || 0),
+    ownershipPercentage: Number(p.ownership_percentage || 50),
+    createdAt: p.created_at,
     role: 'Managing Partner',
   };
 }
@@ -22,16 +23,11 @@ export function mapDbPartnerToPartner(db: DbPartner): Partner {
 export class PartnerService {
   async fetchPartners(): Promise<{ data: Partner[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('partners')
-        .select('*')
-        .order('name');
+      const q = query(collection(db, 'partners'), orderBy('name'));
+      const snapshot = await getDocs(q);
 
-      if (error) {
-        return { data: [], error: formatDatabaseError(error, 'fetch partner records') };
-      }
-
-      return { data: (data || []).map(mapDbPartnerToPartner) };
+      const partners = snapshot.docs.map(docSnap => mapDbPartnerToPartner(docSnap.id, docSnap.data()));
+      return { data: partners };
     } catch (err) {
       return { data: [], error: formatDatabaseError(err, 'fetch partner records') };
     }
@@ -43,23 +39,17 @@ export class PartnerService {
     ownershipPercentage?: number;
   }): Promise<{ data: Partner | null; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('partners')
-        .insert({
-          name: params.name,
-          initial_investment: params.initialInvestment,
-          additional_investment: 0,
-          total_withdrawals: 0,
-          ownership_percentage: params.ownershipPercentage ?? 50,
-        })
-        .select('*')
-        .single();
+      const payload = {
+        name: params.name,
+        initial_investment: params.initialInvestment,
+        additional_investment: 0,
+        total_withdrawals: 0,
+        ownership_percentage: params.ownershipPercentage ?? 50,
+        created_at: new Date().toISOString()
+      };
 
-      if (error) {
-        return { data: null, error: formatDatabaseError(error, 'create partner') };
-      }
-
-      return { data: mapDbPartnerToPartner(data) };
+      const docRef = await addDoc(collection(db, 'partners'), payload);
+      return { data: mapDbPartnerToPartner(docRef.id, payload) };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'create partner') };
     }
@@ -67,26 +57,17 @@ export class PartnerService {
 
   async addAdditionalCapital(partnerId: string, amount: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: partner, error: fetchErr } = await supabase
-        .from('partners')
-        .select('additional_investment')
-        .eq('id', partnerId)
-        .single();
+      const docRef = doc(db, 'partners', partnerId);
+      const docSnap = await getDoc(docRef);
 
-      if (fetchErr || !partner) {
-        return { success: false, error: formatDatabaseError(fetchErr, 'find partner record') };
+      if (!docSnap.exists()) {
+        return { success: false, error: 'Partner not found' };
       }
 
+      const partner = docSnap.data();
       const updated = Number(partner.additional_investment || 0) + Number(amount);
-      const { error } = await supabase
-        .from('partners')
-        .update({ additional_investment: updated })
-        .eq('id', partnerId);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'add partner capital') };
-      }
-
+      
+      await updateDoc(docRef, { additional_investment: updated });
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'add partner capital') };
@@ -95,26 +76,19 @@ export class PartnerService {
 
   async recordWithdrawal(partnerName: string, amount: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: partner, error: fetchErr } = await supabase
-        .from('partners')
-        .select('id, total_withdrawals')
-        .ilike('name', partnerName)
-        .maybeSingle();
+      const q = query(collection(db, 'partners'));
+      const snapshot = await getDocs(q);
+      
+      const partnerDoc = snapshot.docs.find(d => d.data().name?.toLowerCase() === partnerName.toLowerCase());
 
-      if (fetchErr || !partner) {
-        return { success: false, error: formatDatabaseError(fetchErr, 'find partner record') };
+      if (!partnerDoc) {
+        return { success: false, error: 'Partner not found' };
       }
 
+      const partner = partnerDoc.data();
       const updated = Number(partner.total_withdrawals || 0) + Number(amount);
-      const { error } = await supabase
-        .from('partners')
-        .update({ total_withdrawals: updated })
-        .eq('id', partner.id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'record partner withdrawal') };
-      }
-
+      
+      await updateDoc(doc(db, 'partners', partnerDoc.id), { total_withdrawals: updated });
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'record partner withdrawal') };
@@ -123,14 +97,7 @@ export class PartnerService {
 
   async updatePartner(id: string, updates: Partial<DbPartner>): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('partners')
-        .update(updates)
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update partner') };
-      }
+      await updateDoc(doc(db, 'partners', id), updates as any);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update partner') };
@@ -139,14 +106,7 @@ export class PartnerService {
 
   async deletePartner(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('partners')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete partner') };
-      }
+      await deleteDoc(doc(db, 'partners', id));
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'delete partner') };

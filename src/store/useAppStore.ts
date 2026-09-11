@@ -24,7 +24,7 @@ import {
   settingsService,
   formatDatabaseError
 } from '../services';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isFirebaseConfigured } from '../lib/firebase';
 import {
   calculateTotalCapital,
   calculatePartnerInvestments,
@@ -66,21 +66,21 @@ interface AppState {
   openQuickExpense: () => void;
   closeQuickExpense: () => void;
 
-  // Supabase Cloud State
+  // Firebase Cloud State
   isLoadingData: boolean;
   isSaving: boolean;
-  isSyncingWithSupabase: boolean;
+  isSyncingWithFirebase: boolean;
   dbError: string | null;
-  lastSupabaseSync: string | null;
-  isSupabaseConnected: boolean;
+  lastFirebaseSync: string | null;
+  isFirebaseConnected: boolean;
   fetchInitialData: () => Promise<void>;
-  syncFromSupabase: () => Promise<void>;
+  syncFromFirebase: () => Promise<void>;
   setupRealtimeSubscription: () => () => void;
   resetAllData: () => void;
   exportDatabaseJson: () => string;
   importDatabaseJson: (jsonStr: string) => boolean;
 
-  // Domain Entity Collections (Source of truth: Supabase PostgreSQL)
+  // Domain Entity Collections (Source of truth: Firebase Firestore)
   partners: Partner[];
   mobiles: MobileProduct[];
   phones: MobileProduct[]; // alias
@@ -281,15 +281,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Supabase State (Live Cloud Source of Truth)
   isLoadingData: false,
   isSaving: false,
-  isSyncingWithSupabase: false,
+  isSyncingWithFirebase: false,
   dbError: null,
-  lastSupabaseSync: null,
-  isSupabaseConnected: isSupabaseConfigured(),
+  lastFirebaseSync: null,
+  isFirebaseConnected: isFirebaseConfigured(),
 
-  syncFromSupabase: async () => {
-    set({ isSyncingWithSupabase: true });
+  syncFromFirebase: async () => {
+    set({ isSyncingWithFirebase: true });
     await get().fetchInitialData();
-    set({ isSyncingWithSupabase: false });
+    set({ isSyncingWithFirebase: false });
   },
 
   resetAllData: () => {
@@ -1146,7 +1146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // --- Initial Data Fetch from Supabase ---
   fetchInitialData: async () => {
     // If Supabase is not configured, load from localStorage if available or retain store defaults
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       try {
         if (typeof window !== 'undefined') {
           const localRaw = localStorage.getItem('pakmobile_local_db');
@@ -1165,7 +1165,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 budgets: parsed.budgets || get().budgets,
                 settings: parsed.settings || get().settings,
                 isLoadingData: false,
-                isSupabaseConnected: false,
+                isFirebaseConnected: false,
                 dbError: null,
               });
               // Update local storage with current full dataset
@@ -1209,7 +1209,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({
         isLoadingData: false,
-        isSupabaseConnected: false,
+        isFirebaseConnected: false,
         dbError: null,
       });
       return;
@@ -1253,33 +1253,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         transactions: transactionsRes.data,
         budgets: budgetsRes.data,
         settings: loadedSettings,
-        lastSupabaseSync: nowIso,
+        lastFirebaseSync: nowIso,
         isLoadingData: false,
-        isSupabaseConnected: isSupabaseConfigured(),
+        isFirebaseConnected: isFirebaseConfigured(),
         dbError: null,
       });
     } catch (err: any) {
       console.error('[useAppStore] fetchInitialData error:', err);
       set({ 
         isLoadingData: false,
-        dbError: formatDatabaseError(err, 'connect to Supabase database')
+        dbError: formatDatabaseError(err, 'connect to Firebase database')
       });
     }
   },
 
   setupRealtimeSubscription: () => {
-    if (!isSupabaseConfigured()) return () => {};
-
-    const channel = supabase
-      .channel('pakmobile-realtime-sync')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        get().fetchInitialData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => {};
   },
 
   // --- Partner Actions ---
@@ -1592,7 +1581,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   addExpense: async (params) => {
     set({ isSaving: true });
 
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       const newId = 'exp_' + Math.random().toString(36).substring(2, 9);
       const nowIso = new Date().toISOString();
       const newExpense: Expense = {
@@ -1679,7 +1668,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteExpense: async (id) => {
     set({ isSaving: true });
 
-    if (!isSupabaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       set((state) => {
         const nextExpenses = state.expenses.filter((e) => e.id !== id);
         const nextTx = state.transactions.filter((t) => t.referenceId !== id);

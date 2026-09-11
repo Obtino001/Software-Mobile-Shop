@@ -1,33 +1,34 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, getDoc } from 'firebase/firestore';
 import { DbSale } from '../types/database';
 import { Sale, MobileProduct } from '../types';
 import { formatDatabaseError } from './errorHandler';
 import { inventoryService } from './inventoryService';
 import { cashTransactionService } from './cashTransactionService';
 
-export function mapDbSaleToSale(db: DbSale, mobile?: MobileProduct): Sale {
+export function mapDbSaleToSale(dbId: string, s: any, mobile?: MobileProduct): Sale {
   const cost = mobile?.totalCost || mobile?.purchasePrice || 0;
-  const sellingPrice = Number(db.selling_price || 0);
+  const sellingPrice = Number(s.selling_price || 0);
   const profit = sellingPrice - cost;
 
   return {
-    id: db.id,
-    mobileId: db.mobile_id,
-    customerName: db.customer_name,
-    customerPhone: db.customer_phone,
+    id: dbId,
+    mobileId: s.mobile_id,
+    customerName: s.customer_name,
+    customerPhone: s.customer_phone,
     sellingPrice,
     salePrice: sellingPrice,
-    paymentMethod: db.payment_method,
-    date: db.date,
-    notes: db.notes || undefined,
-    invoiceNumber: db.invoice_number || undefined,
-    warrantyDays: db.warranty_days ?? 7,
-    warrantyExpiryDate: db.warranty_expiry_date || undefined,
-    cashAmount: Number(db.cash_amount || 0),
-    bankAmount: Number(db.bank_amount || 0),
-    bankName: db.bank_name || undefined,
-    isExchange: Boolean(db.is_exchange),
-    exchangeDeduction: Number(db.trade_in_credit || 0),
+    paymentMethod: s.payment_method,
+    date: s.date,
+    notes: s.notes || undefined,
+    invoiceNumber: s.invoice_number || undefined,
+    warrantyDays: s.warranty_days ?? 7,
+    warrantyExpiryDate: s.warranty_expiry_date || undefined,
+    cashAmount: Number(s.cash_amount || 0),
+    bankAmount: Number(s.bank_amount || 0),
+    bankName: s.bank_name || undefined,
+    isExchange: Boolean(s.is_exchange),
+    exchangeDeduction: Number(s.trade_in_credit || 0),
     costPrice: cost,
     profit,
     phoneSnapshot: mobile ? {
@@ -46,59 +47,28 @@ export function mapDbSaleToSale(db: DbSale, mobile?: MobileProduct): Sale {
 export class SalesService {
   async fetchSales(): Promise<{ data: Sale[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('sales')
-        .select(`
-          *,
-          mobile_inventory (*)
-        `)
-        .order('date', { ascending: false });
+      const q = query(collection(db, 'sales'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
 
-      if (error) {
-        const simple = await supabase.from('sales').select('*').order('date', { ascending: false });
-        if (simple.error) {
-          return { data: [], error: formatDatabaseError(simple.error, 'fetch sales records') };
+      const sales: Sale[] = [];
+      for (const docSnap of snapshot.docs) {
+        const sData = docSnap.data();
+        let mobile: MobileProduct | undefined = undefined;
+
+        if (sData.mobile_id) {
+          try {
+            const mobRef = doc(db, 'mobile_inventory', sData.mobile_id);
+            const mobSnap = await getDoc(mobRef);
+            if (mobSnap.exists()) {
+              mobile = mobSnap.data() as any;
+            }
+          } catch (e) {
+            // ignore
+          }
         }
-        return { data: (simple.data || []).map((s) => mapDbSaleToSale(s)) };
+        
+        sales.push(mapDbSaleToSale(docSnap.id, sData, mobile));
       }
-
-      const sales: Sale[] = (data || []).map((s: any) => {
-        const mob = s.mobile_inventory;
-        const cost = mob ? Number(mob.purchase_price || 0) + Number(mob.refurb_cost || 0) : 0;
-        const sellingPrice = Number(s.selling_price || 0);
-
-        return {
-          id: s.id,
-          mobileId: s.mobile_id,
-          customerName: s.customer_name,
-          customerPhone: s.customer_phone,
-          sellingPrice,
-          salePrice: sellingPrice,
-          paymentMethod: s.payment_method,
-          date: s.date,
-          notes: s.notes,
-          invoiceNumber: s.invoice_number,
-          warrantyDays: s.warranty_days,
-          warrantyExpiryDate: s.warranty_expiry_date,
-          cashAmount: Number(s.cash_amount || 0),
-          bankAmount: Number(s.bank_amount || 0),
-          bankName: s.bank_name,
-          isExchange: Boolean(s.is_exchange),
-          exchangeDeduction: Number(s.trade_in_credit || 0),
-          costPrice: cost,
-          profit: sellingPrice - cost,
-          phoneSnapshot: mob ? {
-            brand: mob.brand,
-            model: mob.model,
-            storage: mob.storage,
-            color: mob.color,
-            ptaStatus: mob.pta_status,
-            condition: mob.condition,
-            batteryHealth: mob.battery_health,
-            imei1: mob.imei,
-          } : undefined,
-        };
-      });
 
       return { data: sales };
     } catch (err) {
@@ -106,13 +76,6 @@ export class SalesService {
     }
   }
 
-  /**
-   * Complete transactional checkout:
-   * 1. Inserts into sales
-   * 2. Marks device as Sold in mobile_inventory
-   * 3. Creates cash inflow transactions
-   * 4. Inserts trade-in phone if exchange sale
-   */
   async createSale(params: {
     mobile: MobileProduct;
     customerName: string;
@@ -142,31 +105,25 @@ export class SalesService {
       const nowIso = params.date || new Date().toISOString();
 
       // 1. Insert sale record
-      const { data: saleRow, error: saleErr } = await supabase
-        .from('sales')
-        .insert({
-          mobile_id: params.mobile.id,
-          customer_name: params.customerName,
-          customer_phone: params.customerPhone,
-          selling_price: params.sellingPrice,
-          payment_method: params.paymentMethod,
-          date: nowIso,
-          notes: params.notes,
-          invoice_number: params.invoiceNumber,
-          warranty_days: params.warrantyDays ?? 7,
-          warranty_expiry_date: params.warrantyExpiryDate,
-          cash_amount: params.cashAmount || 0,
-          bank_amount: params.bankAmount || 0,
-          bank_name: params.bankName,
-          is_exchange: Boolean(params.isExchange),
-          trade_in_credit: params.tradeInCredit || 0,
-        })
-        .select('*')
-        .single();
+      const payload = {
+        mobile_id: params.mobile.id,
+        customer_name: params.customerName,
+        customer_phone: params.customerPhone,
+        selling_price: params.sellingPrice,
+        payment_method: params.paymentMethod,
+        date: nowIso,
+        notes: params.notes,
+        invoice_number: params.invoiceNumber,
+        warranty_days: params.warrantyDays ?? 7,
+        warranty_expiry_date: params.warrantyExpiryDate,
+        cash_amount: params.cashAmount || 0,
+        bank_amount: params.bankAmount || 0,
+        bank_name: params.bankName,
+        is_exchange: Boolean(params.isExchange),
+        trade_in_credit: params.tradeInCredit || 0,
+      };
 
-      if (saleErr) {
-        return { data: null, error: formatDatabaseError(saleErr, 'record sale invoice') };
-      }
+      const saleRef = await addDoc(collection(db, 'sales'), payload);
 
       // 2. Mark smartphone as Sold
       await inventoryService.markAsSold(params.mobile.id, nowIso);
@@ -180,7 +137,7 @@ export class SalesService {
           description: `Sale ${params.invoiceNumber || ''} (${params.mobile.model}) - Cash`,
           account: 'cash',
           date: nowIso,
-          referenceId: saleRow.id,
+          referenceId: saleRef.id,
         });
       }
 
@@ -192,7 +149,7 @@ export class SalesService {
           description: `Sale ${params.invoiceNumber || ''} (${params.mobile.model}) - Bank ${params.bankName || ''}`,
           account: 'bank',
           date: nowIso,
-          referenceId: saleRow.id,
+          referenceId: saleRef.id,
         });
       }
 
@@ -218,7 +175,7 @@ export class SalesService {
         });
       }
 
-      const saleObj = mapDbSaleToSale(saleRow, params.mobile);
+      const saleObj = mapDbSaleToSale(saleRef.id, payload, params.mobile);
       return { data: saleObj };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'record customer sale') };
@@ -227,14 +184,7 @@ export class SalesService {
 
   async deleteSale(id: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('sales')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete sale record') };
-      }
+      await deleteDoc(doc(db, 'sales', id));
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'delete sale record') };
@@ -259,14 +209,7 @@ export class SalesService {
       if (updates.isExchange !== undefined) dbUpdates.is_exchange = updates.isExchange;
       if (updates.exchangeDeduction !== undefined) dbUpdates.trade_in_credit = updates.exchangeDeduction;
 
-      const { error } = await supabase
-        .from('sales')
-        .update(dbUpdates)
-        .eq('id', id);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update sale record') };
-      }
+      await updateDoc(doc(db, 'sales', id), dbUpdates);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update sale record') };

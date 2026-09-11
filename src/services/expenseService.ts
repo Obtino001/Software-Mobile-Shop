@@ -1,35 +1,31 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, where } from 'firebase/firestore';
 import { DbExpense } from '../types/database';
 import { Expense, ExpenseCategory, AccountType } from '../types';
 import { formatDatabaseError } from './errorHandler';
 import { cashTransactionService } from './cashTransactionService';
 
-export function mapDbExpenseToExpense(db: DbExpense): Expense {
+export function mapDbExpenseToExpense(dbId: string, e: any): Expense {
   return {
-    id: db.id,
-    category: db.category as ExpenseCategory,
-    title: db.title,
-    amount: Number(db.amount || 0),
-    paymentMethod: db.payment_method,
-    date: db.date,
-    notes: db.notes || undefined,
-    paidFrom: db.payment_method.toLowerCase().includes('bank') ? 'bank' : 'cash',
+    id: dbId,
+    category: e.category as ExpenseCategory,
+    title: e.title,
+    amount: Number(e.amount || 0),
+    paymentMethod: e.payment_method,
+    date: e.date,
+    notes: e.notes || undefined,
+    paidFrom: (e.payment_method || '').toLowerCase().includes('bank') ? 'bank' : 'cash',
   };
 }
 
 export class ExpenseService {
   async fetchExpenses(): Promise<{ data: Expense[]; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .order('date', { ascending: false });
+      const q = query(collection(db, 'expenses'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
 
-      if (error) {
-        return { data: [], error: formatDatabaseError(error, 'fetch expenses') };
-      }
-
-      return { data: (data || []).map(mapDbExpenseToExpense) };
+      const expenses = snapshot.docs.map(docSnap => mapDbExpenseToExpense(docSnap.id, docSnap.data()));
+      return { data: expenses };
     } catch (err) {
       return { data: [], error: formatDatabaseError(err, 'fetch expenses') };
     }
@@ -49,22 +45,16 @@ export class ExpenseService {
       const paymentMethod = params.paidFrom === 'cash' ? 'Cash' : 'Bank Transfer';
 
       // 1. Insert into expenses table
-      const { data: expenseRow, error: expErr } = await supabase
-        .from('expenses')
-        .insert({
-          category: params.category,
-          title: params.title,
-          amount: params.amount,
-          payment_method: paymentMethod,
-          date: nowIso,
-          notes: params.notes,
-        })
-        .select('*')
-        .single();
+      const payload = {
+        category: params.category,
+        title: params.title,
+        amount: params.amount,
+        payment_method: paymentMethod,
+        date: nowIso,
+        notes: params.notes,
+      };
 
-      if (expErr) {
-        return { data: null, error: formatDatabaseError(expErr, 'record expense') };
-      }
+      const expRef = await addDoc(collection(db, 'expenses'), payload);
 
       // 2. Insert into cash_transactions table
       await cashTransactionService.createTransaction({
@@ -74,10 +64,10 @@ export class ExpenseService {
         description: `Expense: ${params.title}`,
         account: params.paidFrom,
         date: nowIso,
-        referenceId: expenseRow.id,
+        referenceId: expRef.id,
       });
 
-      return { data: mapDbExpenseToExpense(expenseRow) };
+      return { data: mapDbExpenseToExpense(expRef.id, payload) };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'record expense') };
     }
@@ -86,13 +76,14 @@ export class ExpenseService {
   async deleteExpense(id: string): Promise<{ success: boolean; error?: string }> {
     try {
       // 1. Delete associated cash transaction
-      await supabase.from('cash_transactions').delete().eq('reference_id', id);
+      const txQuery = query(collection(db, 'cash_transactions'), where('reference_id', '==', id));
+      const txSnapshot = await getDocs(txQuery);
+      for (const txDoc of txSnapshot.docs) {
+        await deleteDoc(doc(db, 'cash_transactions', txDoc.id));
+      }
 
       // 2. Delete expense
-      const { error } = await supabase.from('expenses').delete().eq('id', id);
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'delete expense') };
-      }
+      await deleteDoc(doc(db, 'expenses', id));
 
       return { success: true };
     } catch (err) {
@@ -110,10 +101,7 @@ export class ExpenseService {
       if (updates.date !== undefined) dbUpdates.date = updates.date;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
-      const { error } = await supabase.from('expenses').update(dbUpdates).eq('id', id);
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update expense') };
-      }
+      await updateDoc(doc(db, 'expenses', id), dbUpdates);
       return { success: true };
     } catch (err) {
       return { success: false, error: formatDatabaseError(err, 'update expense') };

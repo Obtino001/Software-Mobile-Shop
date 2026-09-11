@@ -219,14 +219,14 @@ export function SettingsScreen() {
         </CardContent>
       </Card>
 
-      {/* Supabase Cloud Connection Status */}
+      {/* Firebase Cloud Connection Status */}
       <Card className="p-5 border-emerald-500/30 bg-emerald-950/10">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
               <CardTitle className="text-sm font-bold text-emerald-400">
-                Supabase PostgreSQL Cloud Backend
+                Firebase PostgreSQL Cloud Backend
               </CardTitle>
             </div>
             <Button
@@ -234,7 +234,7 @@ export function SettingsScreen() {
               variant="outline"
               onClick={() => {
                 fetchInitialData();
-                success('Cloud Sync Triggered', 'Refreshing latest data from Supabase PostgreSQL...');
+                success('Cloud Sync Triggered', 'Refreshing latest data from Firebase PostgreSQL...');
               }}
               className="text-xs h-8"
             >
@@ -247,7 +247,7 @@ export function SettingsScreen() {
             <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
               <span className="text-[10px] text-slate-500 font-bold uppercase block">Connected Project URL</span>
               <span className="font-mono text-emerald-400 text-[11px] truncate block">
-                https://xmalyonlsdzmyfiswuvp.supabase.co
+                https://xmalyonlsdzmyfiswuvp.firebase.co
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
@@ -258,7 +258,7 @@ export function SettingsScreen() {
             </div>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
-            All records for inventory, sales, purchases, expenses, and partner capital are synchronized with Supabase PostgreSQL as the primary source of truth.
+            All records for inventory, sales, purchases, expenses, and partner capital are synchronized with Firebase PostgreSQL as the primary source of truth.
           </p>
         </CardContent>
       </Card>

@@ -24,7 +24,7 @@ export function Header() {
     openQuickPurchase,
     openQuickExpense,
     setCurrentTab,
-    isSyncingWithSupabase
+    isSyncingWithFirebase
   } = useAppStore();
 
   const { 
@@ -61,10 +61,10 @@ export function Header() {
             </span>
             {isConfigured && (
               <span 
-                title={isSyncingWithSupabase ? 'Syncing...' : 'Connected to Supabase PostgreSQL'} 
+                title={isSyncingWithFirebase ? 'Syncing...' : 'Connected to Firebase PostgreSQL'} 
                 className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded-full"
               >
-                <Cloud className={`h-2.5 w-2.5 ${isSyncingWithSupabase ? 'animate-bounce' : ''}`} />
+                <Cloud className={`h-2.5 w-2.5 ${isSyncingWithFirebase ? 'animate-bounce' : ''}`} />
                 Cloud
               </span>
             )}

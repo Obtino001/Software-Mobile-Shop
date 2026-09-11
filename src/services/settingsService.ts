@@ -1,39 +1,36 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, doc, getDocs, query, limit, updateDoc } from 'firebase/firestore';
 import { DbBusinessSettings } from '../types/database';
 import { Settings } from '../types';
 import { formatDatabaseError } from './errorHandler';
 
-export function mapDbSettingsToSettings(db: DbBusinessSettings): Settings {
+export function mapDbSettingsToSettings(dbData: any): Settings {
   return {
-    businessName: db.business_name,
-    shopName: db.business_name,
-    currency: db.currency || 'PKR',
-    monthlyExpenseTarget: Number(db.monthly_expense_target || 55000),
-    defaultPartnerSplit: Number(db.default_partner_split || 50),
-    tagline: db.tagline || undefined,
-    phone: db.phone || undefined,
-    address: db.address || undefined,
-    city: db.city || undefined,
-    defaultWarrantyDays: db.default_warranty_days ?? 7,
-    theme: (db.theme as any) || 'dark',
+    businessName: dbData.business_name,
+    shopName: dbData.business_name,
+    currency: dbData.currency || 'PKR',
+    monthlyExpenseTarget: Number(dbData.monthly_expense_target || 55000),
+    defaultPartnerSplit: Number(dbData.default_partner_split || 50),
+    tagline: dbData.tagline || undefined,
+    phone: dbData.phone || undefined,
+    address: dbData.address || undefined,
+    city: dbData.city || undefined,
+    defaultWarrantyDays: dbData.default_warranty_days ?? 7,
+    theme: (dbData.theme as any) || 'dark',
   };
 }
 
 export class SettingsService {
   async fetchSettings(): Promise<{ data: Settings | null; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .from('business_settings')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
+      const q = query(collection(db, 'business_settings'), limit(1));
+      const snapshot = await getDocs(q);
 
-      if (error) {
-        return { data: null, error: formatDatabaseError(error, 'fetch business settings') };
+      if (snapshot.empty) {
+        return { data: null };
       }
 
-      if (!data) return { data: null };
-      return { data: mapDbSettingsToSettings(data) };
+      return { data: mapDbSettingsToSettings(snapshot.docs[0].data()) };
     } catch (err) {
       return { data: null, error: formatDatabaseError(err, 'fetch business settings') };
     }
@@ -41,6 +38,14 @@ export class SettingsService {
 
   async updateSettings(updates: Partial<Settings>): Promise<{ success: boolean; error?: string }> {
     try {
+      const q = query(collection(db, 'business_settings'), limit(1));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return { success: false, error: 'No settings document found to update' };
+      }
+
+      const docId = snapshot.docs[0].id;
       const dbPayload: any = {};
       if (updates.businessName !== undefined) dbPayload.business_name = updates.businessName;
       if (updates.currency !== undefined) dbPayload.currency = updates.currency;
@@ -59,14 +64,7 @@ export class SettingsService {
       }
       if (updates.theme !== undefined) dbPayload.theme = updates.theme;
 
-      const { error } = await supabase
-        .from('business_settings')
-        .update(dbPayload)
-        .not('id', 'is', null);
-
-      if (error) {
-        return { success: false, error: formatDatabaseError(error, 'update business settings') };
-      }
+      await updateDoc(doc(db, 'business_settings', docId), dbPayload);
 
       return { success: true };
     } catch (err) {
