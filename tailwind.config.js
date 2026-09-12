@@ -41,12 +41,23 @@ export default {
           500: '#107c41',
           700: '#0b5c30',
           900: '#05381d',
+        },
+        navy: {
+          950: '#070B12',
+          900: '#0B0F19',
+          850: '#0F1523',
+          800: '#151D2F',
+          700: '#1E293B',
+          600: '#334155',
         }
       },
       boxShadow: {
         'mobile-nav': '0 -4px 20px rgba(0, 0, 0, 0.08)',
         'mobile-card': '0 2px 10px rgba(0, 0, 0, 0.04)',
         'glow-brand': '0 0 25px rgba(16, 185, 129, 0.25)',
+        'card': '0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03)',
+        'card-hover': '0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04)',
+        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

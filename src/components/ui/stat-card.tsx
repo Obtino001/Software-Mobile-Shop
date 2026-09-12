@@ -12,7 +12,7 @@ export interface StatCardProps {
     isPositive: boolean;
   };
   highlight?: boolean;
-  color?: 'emerald' | 'blue' | 'purple' | 'amber' | 'slate';
+  color?: 'emerald' | 'rose' | 'coral' | 'blue' | 'purple' | 'amber' | 'slate';
   onClick?: () => void;
 }
 
@@ -23,28 +23,30 @@ export function StatCard({
   icon,
   trend,
   highlight = false,
-  color = 'emerald',
+  color = 'slate',
   onClick,
 }: StatCardProps) {
   const colorStyles = {
-    emerald: 'text-[#E06349] bg-[#E06349]/10 border-[#E06349]/20',
-    blue: 'text-sky-600 bg-sky-50 border-sky-100',
-    purple: 'text-purple-600 bg-purple-50 border-purple-100',
-    amber: 'text-amber-600 bg-amber-50 border-amber-100',
-    slate: 'text-slate-600 bg-slate-100 border-slate-200',
+    emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200/80',
+    rose: 'text-rose-600 bg-rose-50 border-rose-200/80',
+    coral: 'text-[#E06349] bg-[#E06349]/10 border-[#E06349]/20',
+    blue: 'text-blue-600 bg-blue-50 border-blue-200/80',
+    purple: 'text-purple-600 bg-purple-50 border-purple-200/80',
+    amber: 'text-amber-600 bg-amber-50 border-amber-200/80',
+    slate: 'text-slate-600 bg-slate-100 border-slate-200/80',
   };
 
   return (
     <Card
       onClick={onClick}
       className={cn(
-        'relative overflow-hidden transition-all duration-200 select-none p-4 bg-white border border-black/[0.08] shadow-[0_1px_3px_rgba(0,0,0,0.02)]',
-        onClick && 'cursor-pointer hover:border-black/[0.18] hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)] active:scale-[0.98]',
-        highlight && 'border-[#E06349]/30 bg-[#E06349]/[0.02]'
+        'relative overflow-hidden transition-all duration-200 select-none p-4 md:p-5 bg-white border border-slate-200/80 shadow-sm',
+        onClick && 'cursor-pointer hover:border-slate-300 hover:shadow-md active:scale-[0.98]',
+        highlight && 'border-[#E06349]/40 bg-[#E06349]/[0.02]'
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
           {title}
         </span>
         {icon && (
@@ -65,7 +67,7 @@ export function StatCard({
               <span
                 className={cn(
                   'flex items-center font-bold font-mono',
-                  trend.isPositive ? 'text-[#E06349]' : 'text-rose-500'
+                  trend.isPositive ? 'text-emerald-600' : 'text-rose-600'
                 )}
               >
                 {trend.isPositive ? '+' : ''}

@@ -4,38 +4,37 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97.3%; /* #F8F8F8 */
-    --foreground: 0 0% 8%; /* #141414 */
+    --background: 210 40% 98%; /* #F8FAFC */
+    --foreground: 222 47% 11%; /* #0F172A */
     --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 0 0% 8%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
-    --primary: 11 74% 58%; /* #E06349 */
+    --popover-foreground: 222 47% 11%;
+    --primary: 11 74% 58%; /* #E06349 Coral */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 95%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 11 74% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 0% / 0.09;
-    --input: 0 0% 0% / 0.09;
+    --border: 214.3 31.8% 91.4%; /* slate-200 */
+    --input: 214.3 31.8% 91.4%;
     --ring: 11 74% 58%;
-    --radius: 1.25rem;
+    --radius: 0.875rem;
   }
 
   * {
-    border-color: rgba(0, 0, 0, 0.08);
+    border-color: rgba(226, 232, 240, 0.9);
     -webkit-tap-highlight-color: transparent;
-    font-family: 'Inter', sans-serif !important;
   }
 
   body {
-    background-color: #F8F8F8;
-    color: #141414;
-    font-family: 'Inter', sans-serif;
+    background-color: #F8FAFC;
+    color: #0F172A;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overscroll-behavior-y: contain;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     -webkit-font-smoothing: antialiased;
@@ -59,12 +58,12 @@
   background: rgba(0, 0, 0, 0.2);
 }
 
-/* Figma Card helpers */
+/* Card helpers */
 .figma-card {
   background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
 }
 
 /* Coral accent utilities */

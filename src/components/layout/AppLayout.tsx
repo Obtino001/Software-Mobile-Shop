@@ -63,7 +63,7 @@ export function AppLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F8F8F8] font-sans text-[#141414] antialiased selection:bg-[#E06349] selection:text-white relative">
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900 antialiased selection:bg-[#E06349] selection:text-white relative">
       {/* Desktop & Tablet Sidebar */}
       <DesktopSidebar />
 

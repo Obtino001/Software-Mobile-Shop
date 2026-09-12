@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { formatPKR, formatDate, getPtaLabel, getExpenseCategoryLabel } from '../../utils/formatters';
+import { formatPKR, formatDate, getExpenseCategoryLabel } from '../../utils/formatters';
 import { AnimatedNumber } from '../../components/animation/AnimatedNumber';
-import { AnimatedProgressBar } from '../../components/animation/AnimatedProgressBar';
 import { SaleReceiptModal } from '../sales/SaleReceiptModal';
 import { SaleRecord } from '../../types';
 import {
@@ -17,14 +16,13 @@ import {
 } from 'recharts';
 import {
   Wallet,
-  Landmark,
   Smartphone,
   TrendingUp,
   Zap,
   ArrowDownLeft,
   ReceiptText,
-  ArrowRight,
   AlertTriangle,
+  AlertCircle,
   Clock,
   ShoppingBag,
   DollarSign,
@@ -32,9 +30,14 @@ import {
   Package,
   ChevronRight,
   CalendarDays,
+  Plus,
+  ArrowUpRight,
+  CheckCircle2,
+  BarChart3,
+  Layers
 } from 'lucide-react';
 
-// ─── Status semantic helpers (not hardcoded colors) ───
+// ─── Status semantic helpers ───
 type BudgetStatus = 'healthy' | 'warning' | 'critical' | 'over';
 
 function getBudgetStatus(pct: number): BudgetStatus {
@@ -45,10 +48,10 @@ function getBudgetStatus(pct: number): BudgetStatus {
 }
 
 const STATUS_STYLES: Record<BudgetStatus, { bar: string; badge: string; text: string }> = {
-  healthy: { bar: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', text: 'text-emerald-600' },
-  warning: { bar: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200', text: 'text-amber-600' },
-  critical: { bar: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200', text: 'text-rose-600' },
-  over: { bar: 'bg-rose-600', badge: 'bg-rose-100 text-rose-800 border-rose-300', text: 'text-rose-700' },
+  healthy: { bar: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', text: 'text-emerald-600' },
+  warning: { bar: 'bg-amber-500', badge: 'bg-amber-50 text-amber-800 border-amber-200/80', text: 'text-amber-700' },
+  critical: { bar: 'bg-rose-500', badge: 'bg-rose-50 text-rose-800 border-rose-200/80', text: 'text-rose-600' },
+  over: { bar: 'bg-rose-600', badge: 'bg-rose-100 text-rose-900 border-rose-300', text: 'text-rose-700' },
 };
 
 // ─── Time range types ───
@@ -57,8 +60,8 @@ type TimeRange = 'this_month' | 'last_month' | 'last_3' | 'last_6' | 'this_year'
 const TIME_LABELS: Record<TimeRange, string> = {
   this_month: 'This Month',
   last_month: 'Last Month',
-  last_3: 'Last 3 Months',
-  last_6: 'Last 6 Months',
+  last_3: '3 Months',
+  last_6: '6 Months',
   this_year: 'This Year',
 };
 
@@ -85,7 +88,7 @@ function getMonthKey(date: Date): string {
 function getMonthLabel(key: string): string {
   const [y, m] = key.split('-');
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[parseInt(m) - 1]} ${y.slice(-2)}`;
+  return `${months[parseInt(m, 10) - 1]} '${y.slice(-2)}`;
 }
 
 function getMonthsInRange(range: TimeRange): string[] {
@@ -131,7 +134,7 @@ function isInMonth(dateStr: string, monthKey: string): boolean {
 }
 
 // ═════════════════════════════════════════
-// DASHBOARD SCREEN
+// REDESIGNED FINTECH DASHBOARD SCREEN
 // ═════════════════════════════════════════
 export function DashboardScreen() {
   const {
@@ -139,7 +142,6 @@ export function DashboardScreen() {
     sales,
     purchases,
     expenses,
-    partners,
     settings,
     getCashInHand,
     getBankBalance,
@@ -163,7 +165,7 @@ export function DashboardScreen() {
   const canManagePartners = hasPermission('partners:manage');
 
   const [selectedReceipt, setSelectedReceipt] = useState<SaleRecord | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRange>('this_month');
+  const [timeRange, setTimeRange] = useState<TimeRange>('last_6');
 
   // ── Core computed values ──
   const cashInHand = getCashInHand();
@@ -176,8 +178,9 @@ export function DashboardScreen() {
   const netProfit = getNetProfit();
   const stockCount = getStockCount();
   const soldCount = getSoldCount();
-  const potentialProfit = stockRetail - stockCost;
+  const potentialProfit = Math.max(0, stockRetail - stockCost);
 
+  // Partner equity
   const yasirEquity = getPartnerEquity('Yasir');
   const saadEquity = getPartnerEquity('Saad');
   const totalCapital = yasirEquity.initial + saadEquity.initial;
@@ -189,7 +192,7 @@ export function DashboardScreen() {
     [phones]
   );
 
-  // ── Monthly expense budget (default PKR 20,000) ──
+  // ── Monthly expense budget ──
   const MONTHLY_BUDGET = settings?.monthlyExpenseTarget || 20000;
   const currentMonthKey = getMonthKey(new Date());
   const monthlyExpensesTotal = useMemo(
@@ -214,12 +217,19 @@ export function DashboardScreen() {
 
   // ── Alerts ──
   const alerts = useMemo(() => {
-    const items: { icon: React.ReactNode; text: string; severity: 'warning' | 'danger' | 'info' }[] = [];
+    const items: { id: string; icon: React.ReactNode; text: string; severity: 'warning' | 'danger' | 'info'; actionLabel?: string; tab?: any }[] = [];
 
     // Phones with no selling price
     const noPrice = inStockPhones.filter((p) => !p.sellingPrice || p.sellingPrice <= 0);
     if (noPrice.length > 0) {
-      items.push({ icon: <DollarSign className="h-4 w-4" />, text: `${noPrice.length} phone(s) have no selling price set`, severity: 'warning' });
+      items.push({ 
+        id: 'no-price', 
+        icon: <DollarSign className="h-4 w-4" />, 
+        text: `${noPrice.length} phone(s) have no retail price set`, 
+        severity: 'warning',
+        actionLabel: 'Set Prices',
+        tab: 'inventory'
+      });
     }
 
     // Aging stock (>14 days)
@@ -228,23 +238,51 @@ export function DashboardScreen() {
       return days > 14;
     });
     if (aging.length > 0) {
-      items.push({ icon: <Clock className="h-4 w-4" />, text: `${aging.length} phone(s) in stock for over 14 days`, severity: 'warning' });
+      items.push({ 
+        id: 'aging', 
+        icon: <Clock className="h-4 w-4" />, 
+        text: `${aging.length} phone(s) in stock for over 14 days`, 
+        severity: 'warning',
+        actionLabel: 'View Stock',
+        tab: 'inventory'
+      });
     }
 
     // Budget exceeded
     if (budgetStatus === 'over') {
-      items.push({ icon: <AlertTriangle className="h-4 w-4" />, text: `Monthly expense budget exceeded by ${formatPKR(Math.abs(budgetRemaining))}`, severity: 'danger' });
+      items.push({ 
+        id: 'budget-over', 
+        icon: <AlertTriangle className="h-4 w-4" />, 
+        text: `Monthly expense budget exceeded by ${formatPKR(Math.abs(budgetRemaining))}`, 
+        severity: 'danger',
+        actionLabel: 'Check Budget',
+        tab: 'budgets'
+      });
     }
 
     // Low cash
     if (cashInHand < 5000 && cashInHand >= 0) {
-      items.push({ icon: <Wallet className="h-4 w-4" />, text: `Cash counter is low: ${formatPKR(cashInHand)}`, severity: 'info' });
+      items.push({ 
+        id: 'low-cash', 
+        icon: <Wallet className="h-4 w-4" />, 
+        text: `Cash counter low: ${formatPKR(cashInHand)} remaining`, 
+        severity: 'info',
+        actionLabel: 'View Register',
+        tab: 'cash'
+      });
     }
 
     // Reserved phones
     const reserved = phones.filter((p) => p.status === 'Reserved' || (p.status as string) === 'booked_token');
     if (reserved.length > 0) {
-      items.push({ icon: <Package className="h-4 w-4" />, text: `${reserved.length} phone(s) are reserved / token booked`, severity: 'info' });
+      items.push({ 
+        id: 'reserved', 
+        icon: <Package className="h-4 w-4" />, 
+        text: `${reserved.length} phone(s) reserved on customer token`, 
+        severity: 'info',
+        actionLabel: 'Check Token',
+        tab: 'inventory'
+      });
     }
 
     return items;
@@ -252,18 +290,28 @@ export function DashboardScreen() {
 
   // ── Recent activity feed (merged & sorted) ──
   const recentActivity = useMemo(() => {
-    type Activity = { id: string; icon: React.ReactNode; desc: string; amount: number; date: string; type: 'income' | 'expense' | 'neutral'; category: string };
+    type Activity = { 
+      id: string; 
+      rawSale?: SaleRecord;
+      icon: React.ReactNode; 
+      desc: string; 
+      amount: number; 
+      date: string; 
+      type: 'income' | 'expense'; 
+      category: string; 
+    };
     const items: Activity[] = [];
 
     sales.slice(0, 10).forEach((s) => {
       items.push({
         id: `s-${s.id}`,
+        rawSale: s,
         icon: <Zap className="h-3.5 w-3.5" />,
-        desc: `Sold ${s.phoneSnapshot?.brand || ''} ${s.phoneSnapshot?.model || 'Phone'} to ${s.customerName}`,
+        desc: `Sold ${s.phoneSnapshot?.brand || ''} ${s.phoneSnapshot?.model || 'Phone'} (${s.customerName})`,
         amount: s.sellingPrice || s.salePrice || 0,
         date: s.date,
         type: 'income',
-        category: 'Sale',
+        category: 'Sale POS',
       });
     });
 
@@ -287,290 +335,624 @@ export function DashboardScreen() {
         amount: p.amount || p.totalCost || 0,
         date: p.date,
         type: 'expense',
-        category: 'Purchase',
+        category: 'Stock Purchase',
       });
     });
 
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return items.slice(0, 8);
+    return items.slice(0, 7);
   }, [sales, expenses, purchases]);
 
-  return (
-    <div className="space-y-3 md:space-y-4 pb-8 select-none">
+  // Margin ratios
+  const grossMarginPct = totalSales > 0 ? ((grossProfit / totalSales) * 100).toFixed(1) : '0.0';
+  const netMarginPct = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0.0';
 
-      {/* ═══════ GREETING ═══════ */}
-      <div className="flex items-center justify-between">
+  return (
+    <div className="space-y-4 md:space-y-6 pb-12 select-none">
+
+      {/* ═══════ 1. COMPACT DASHBOARD HEADER ═══════ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-200/60">
         <div>
-          <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight">
-            {getGreeting()}, {partnerName || 'Partner'} 👋
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              Live Operations
+            </span>
+            <span className="h-1 w-1 rounded-full bg-slate-300" />
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Counter Active
+            </span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
+            {getGreeting()}, {partnerName || 'Partner'}
           </h1>
-          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-            <CalendarDays className="h-3 w-3" />
+          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 font-medium">
+            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
             {getCurrentDateStr()}
           </p>
         </div>
-        <button
-          onClick={() => openQuickPurchase()}
-          className="h-9 px-3 rounded-2xl bg-[#E06349] hover:bg-[#D05339] text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 shrink-0"
-        >
-          <Smartphone className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Quick Add</span>
-          <span className="sm:hidden">Add</span>
-        </button>
+
+        {/* Header Quick Actions */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            onClick={() => openQuickExpense()}
+            className="h-9 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            title="Record Shop Expense"
+          >
+            <ReceiptText className="h-3.5 w-3.5 text-rose-500" />
+            <span className="hidden sm:inline">Expense</span>
+          </button>
+          <button
+            onClick={() => openQuickSale()}
+            className="h-9 px-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            title="Issue Sale Invoice"
+          >
+            <Zap className="h-3.5 w-3.5 text-[#E06349]" />
+            <span>New Sale</span>
+          </button>
+          <button
+            onClick={() => openQuickPurchase()}
+            className="h-9 px-3.5 rounded-xl bg-[#E06349] hover:bg-[#D05339] text-white font-semibold text-xs shadow-sm transition-all flex items-center gap-1.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#E06349]/40"
+            title="Stock in new mobile device"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Stock In Phone</span>
+          </button>
+        </div>
       </div>
 
-      {/* ═══════ HERO CARD — Cash + Net Profit ═══════ */}
-      {canViewFinancials && (
-        <div 
-          className="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-4 md:p-5 text-white shadow-lg border border-white/5 cursor-pointer active:scale-[0.99] transition-transform"
-          onClick={() => setCurrentTab('cash')}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Cash in Hand</p>
-              <p className="text-xl md:text-2xl font-bold font-mono text-white leading-tight">
-                {formatPKR(cashInHand)}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Bank: {formatPKR(bankBalance)}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">Net Profit</p>
-              <p className={`text-xl md:text-2xl font-bold font-mono leading-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatPKR(netProfit)}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Stock: {stockCount} phones
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════ KPI GRID (4 cards, 2x2) ═══════ */}
-      <div className="grid grid-cols-2 gap-2 md:gap-2.5">
-        <KpiMini label="Total Sales" value={totalSales} icon={<ShoppingBag className="h-4 w-4" />} onClick={() => setCurrentTab('sales')} />
-        <KpiMini label="Gross Profit" value={grossProfit} icon={<TrendingUp className="h-4 w-4" />} accent />
-        <KpiMini label="Expenses" value={totalExpenses} icon={<ReceiptText className="h-4 w-4" />} onClick={() => setCurrentTab('expenses')} negative />
-        <KpiMini label="Stock Value" value={stockCost} icon={<Smartphone className="h-4 w-4" />} onClick={() => setCurrentTab('inventory')} />
-      </div>
-
-      {/* ═══════ CAPITAL CARD (Owner only — HIDDEN on mobile) ═══════ */}
-      {canViewFinancials && canManagePartners && (
-        <div className="hidden md:block rounded-3xl border border-black/[0.08] bg-white p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Capital Invested</p>
-              <AnimatedNumber value={totalCapital} className="text-xl font-bold text-slate-900" />
-            </div>
-            <button
-              onClick={() => setCurrentTab('partners')}
-              className="text-[11px] font-semibold text-[#E06349] flex items-center gap-0.5 hover:underline"
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span>Ledgers</span>
-            </button>
-          </div>
-
-          {/* Visual split bar */}
-          <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex mb-3">
-            <div className="h-full bg-[#E06349] rounded-l-full transition-all duration-500" style={{ width: `${yasirPct}%` }} />
-            <div className="h-full bg-sky-500 rounded-r-full transition-all duration-500" style={{ width: `${saadPct}%` }} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="p-3 rounded-2xl bg-[#FAFAFA] border border-black/[0.04]">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900">Yasir</span>
-                <span className="text-[10px] font-bold text-[#E06349] bg-[#E06349]/10 px-1.5 py-0.5 rounded-full">{yasirPct}%</span>
-              </div>
-              <AnimatedNumber value={yasirEquity.currentEquity} className="text-sm font-bold text-slate-800 mt-1 block" />
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                Invested {formatPKR(yasirEquity.initial)}
-              </p>
-            </div>
-            <div className="p-3 rounded-2xl bg-[#FAFAFA] border border-black/[0.04]">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900">Saad</span>
-                <span className="text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full">{saadPct}%</span>
-              </div>
-              <AnimatedNumber value={saadEquity.currentEquity} className="text-sm font-bold text-slate-800 mt-1 block" />
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                Invested {formatPKR(saadEquity.initial)}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════ MONTHLY EXPENSE BUDGET (compact on mobile) ═══════ */}
-      <div className="rounded-2xl md:rounded-3xl border border-black/[0.08] bg-white p-4 md:p-5">
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Monthly Budget</p>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyle.badge}`}>
-            {budgetStatus === 'over' ? 'Over Budget' : budgetStatus === 'critical' ? 'Critical' : budgetStatus === 'warning' ? 'Warning' : 'Healthy'}
+      {/* ═══════ 2. FINANCIAL OVERVIEW — RESPONSIVE BENTO GRID (6 CARDS) ═══════ */}
+      <section aria-label="Financial Overview">
+        <div className="flex items-center justify-between mb-2 px-0.5">
+          <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5 text-slate-400" />
+            Financial Overview
+          </h2>
+          <span className="text-[11px] text-slate-400 font-medium">
+            Store Performance Snapshot
           </span>
         </div>
 
-        {/* Progress bar */}
-        <div className="w-full h-2.5 md:h-3 rounded-full bg-slate-100 overflow-hidden mb-2.5">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ease-out ${statusStyle.bar}`}
-            style={{ width: `${Math.min(budgetPct, 100)}%` }}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {/* Card 1: Cash in Hand */}
+          {canViewFinancials ? (
+            <BentoKpiCard
+              label="Cash in Hand"
+              value={cashInHand}
+              subtext={`Bank: ${formatPKR(bankBalance)}`}
+              icon={<Wallet className="h-4 w-4 text-emerald-600" />}
+              iconBg="bg-emerald-50 border-emerald-200/80"
+              valueColor="text-slate-900"
+              onClick={() => setCurrentTab('cash')}
+              clickableText="View Register"
+            />
+          ) : (
+            <BentoKpiCard
+              label="Cash Register"
+              value="Restricted"
+              subtext="Owner Only Access"
+              icon={<Wallet className="h-4 w-4 text-slate-400" />}
+              iconBg="bg-slate-100 border-slate-200"
+              valueColor="text-slate-400"
+            />
+          )}
+
+          {/* Card 2: Net Profit */}
+          {canViewFinancials ? (
+            <BentoKpiCard
+              label="Net Profit"
+              value={netProfit}
+              subtext={`${netMarginPct}% net margin`}
+              icon={<TrendingUp className={`h-4 w-4 ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`} />}
+              iconBg={netProfit >= 0 ? 'bg-emerald-50 border-emerald-200/80' : 'bg-rose-50 border-rose-200/80'}
+              valueColor={netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}
+              isCurrency
+              badge={netProfit >= 0 ? '+Profit' : '-Loss'}
+              badgeStyle={netProfit >= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-rose-50 text-rose-700 border-rose-200/80'}
+            />
+          ) : (
+            <BentoKpiCard
+              label="Net Profit"
+              value="Restricted"
+              subtext="Owner Only Access"
+              icon={<TrendingUp className="h-4 w-4 text-slate-400" />}
+              iconBg="bg-slate-100 border-slate-200"
+              valueColor="text-slate-400"
+            />
+          )}
+
+          {/* Card 3: Total Sales */}
+          <BentoKpiCard
+            label="Total Sales"
+            value={totalSales}
+            subtext={`${soldCount} units sold`}
+            icon={<ShoppingBag className="h-4 w-4 text-blue-600" />}
+            iconBg="bg-blue-50 border-blue-200/80"
+            valueColor="text-slate-900"
+            onClick={() => setCurrentTab('sales')}
+            clickableText="View Sales"
+            isCurrency
+          />
+
+          {/* Card 4: Gross Profit */}
+          {canViewFinancials ? (
+            <BentoKpiCard
+              label="Gross Profit"
+              value={grossProfit}
+              subtext={`${grossMarginPct}% gross margin`}
+              icon={<DollarSign className="h-4 w-4 text-teal-600" />}
+              iconBg="bg-teal-50 border-teal-200/80"
+              valueColor={grossProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}
+              isCurrency
+            />
+          ) : (
+            <BentoKpiCard
+              label="Gross Profit"
+              value="Restricted"
+              subtext="Owner Only Access"
+              icon={<DollarSign className="h-4 w-4 text-slate-400" />}
+              iconBg="bg-slate-100 border-slate-200"
+              valueColor="text-slate-400"
+            />
+          )}
+
+          {/* Card 5: Expenses */}
+          <BentoKpiCard
+            label="Expenses"
+            value={totalExpenses}
+            subtext={`${formatPKR(monthlyExpensesTotal)} this month`}
+            icon={<ReceiptText className="h-4 w-4 text-rose-600" />}
+            iconBg="bg-rose-50 border-rose-200/80"
+            valueColor="text-rose-600"
+            onClick={() => setCurrentTab('expenses')}
+            clickableText="View Log"
+            isCurrency
+          />
+
+          {/* Card 6: Stock Value */}
+          <BentoKpiCard
+            label="Stock Value"
+            value={stockCost}
+            subtext={`${stockCount} phones • Retail ${formatPKR(stockRetail)}`}
+            icon={<Smartphone className="h-4 w-4 text-indigo-600" />}
+            iconBg="bg-indigo-50 border-indigo-200/80"
+            valueColor="text-slate-900"
+            onClick={() => setCurrentTab('inventory')}
+            clickableText="View Stock"
+            isCurrency
           />
         </div>
+      </section>
 
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-[10px] text-slate-400 font-medium">Spent</p>
-            <p className={`text-sm font-bold font-mono ${statusStyle.text}`}>{formatPKR(monthlyExpensesTotal)}</p>
+      {/* ═══════ 3. CAPITAL & MONTHLY BUDGET BENTO ROW ═══════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        {/* ── Total Capital Invested (7 cols on large screens, Owner Only) ── */}
+        {canViewFinancials && canManagePartners && (
+          <div className="lg:col-span-7 rounded-xl border border-slate-200/80 bg-white p-4 md:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Partner Capital & Ownership
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <AnimatedNumber value={totalCapital} className="text-xl md:text-2xl font-bold font-mono text-slate-900" />
+                  <span className="text-xs text-slate-500 font-medium">Total Invested</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setCurrentTab('partners')}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#E06349] hover:text-[#C94E36] transition-colors"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Partner Ledgers</span>
+                <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+
+            {/* Proportional Split Bar */}
+            <div className="space-y-1.5 mb-4">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="text-slate-700">Yasir ({yasirPct}%)</span>
+                <span className="text-slate-700">Saad ({saadPct}%)</span>
+              </div>
+              <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
+                <div 
+                  className="h-full bg-slate-800 rounded-l-full transition-all duration-500" 
+                  style={{ width: `${yasirPct}%` }}
+                  title={`Yasir: ${yasirPct}%`} 
+                />
+                <div 
+                  className="h-full bg-blue-600 rounded-r-full transition-all duration-500" 
+                  style={{ width: `${saadPct}%` }}
+                  title={`Saad: ${saadPct}%`}
+                />
+              </div>
+            </div>
+
+            {/* Partner Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Yasir */}
+              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/70 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold bg-slate-800 text-white shadow-sm">
+                    YA
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">Yasir</span>
+                      <span className="text-[10px] font-bold text-slate-700 bg-slate-200/70 px-1.5 py-0.2 rounded">
+                        {yasirPct}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                      Invested {formatPKR(yasirEquity.initial)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Net Equity</span>
+                  <AnimatedNumber value={yasirEquity.currentEquity} className="text-sm font-bold font-mono text-slate-900" />
+                </div>
+              </div>
+
+              {/* Saad */}
+              <div className="p-3.5 rounded-xl bg-slate-50/70 border border-slate-200/70 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold bg-blue-600 text-white shadow-sm">
+                    SA
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-900">Saad</span>
+                      <span className="text-[10px] font-bold text-blue-700 bg-blue-100/70 px-1.5 py-0.2 rounded">
+                        {saadPct}%
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                      Invested {formatPKR(saadEquity.initial)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 font-semibold block uppercase">Net Equity</span>
+                  <AnimatedNumber value={saadEquity.currentEquity} className="text-sm font-bold font-mono text-slate-900" />
+                </div>
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* ── Monthly Expense Budget (5 cols or full width) ── */}
+        <div className={`${canViewFinancials && canManagePartners ? 'lg:col-span-5' : 'lg:col-span-12'} rounded-xl border border-slate-200/80 bg-white p-4 md:p-5 shadow-sm flex flex-col justify-between`}>
           <div>
-            <p className="text-[10px] text-slate-400 font-medium">Budget</p>
-            <p className="text-sm font-bold font-mono text-slate-700">{formatPKR(MONTHLY_BUDGET)}</p>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Monthly Expense Budget
+                </p>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="text-xl md:text-2xl font-bold font-mono text-slate-900">
+                    {formatPKR(MONTHLY_BUDGET)}
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">Target Limit</span>
+                </div>
+              </div>
+              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${statusStyle.badge}`}>
+                {budgetStatus === 'over' 
+                  ? 'Over Budget' 
+                  : budgetStatus === 'critical' 
+                  ? 'Critical' 
+                  : budgetStatus === 'warning' 
+                  ? 'Warning' 
+                  : 'Healthy Budget'}
+              </span>
+            </div>
+
+            {/* Budget Progress Bar */}
+            <div className="space-y-1.5 mb-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium">Progress</span>
+                <span className="font-bold text-slate-800 font-mono">{budgetPct}%</span>
+              </div>
+              <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden shadow-inner">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${statusStyle.bar}`}
+                  style={{ width: `${Math.min(budgetPct, 100)}%` }}
+                />
+              </div>
+            </div>
           </div>
+
+          {/* 3-Column Budget Breakdown */}
+          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-center">
+            <div className="p-2 rounded-lg bg-slate-50/60 border border-slate-200/60">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Spent</p>
+              <p className={`text-xs sm:text-sm font-bold font-mono mt-0.5 ${statusStyle.text}`}>
+                {formatPKR(monthlyExpensesTotal)}
+              </p>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50/60 border border-slate-200/60">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target</p>
+              <p className="text-xs sm:text-sm font-bold font-mono text-slate-700 mt-0.5">
+                {formatPKR(MONTHLY_BUDGET)}
+              </p>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50/60 border border-slate-200/60">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                {budgetRemaining >= 0 ? 'Remaining' : 'Over Limit'}
+              </p>
+              <p className={`text-xs sm:text-sm font-bold font-mono mt-0.5 ${budgetRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatPKR(Math.abs(budgetRemaining))}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ 4. PERFORMANCE CHART & SECONDARY FEED ═══════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        {/* ── Monthly Performance Chart (8 cols) ── */}
+        <div className="lg:col-span-8 rounded-xl border border-slate-200/80 bg-white p-4 md:p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
+                <BarChart3 className="h-4 w-4 text-slate-500" />
+                Financial Performance Trend
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">
+                Comparative revenue, expenses, and net profit
+              </p>
+            </div>
+
+            {/* Time range filters */}
+            <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200/80 overflow-x-auto">
+              {(Object.keys(TIME_LABELS) as TimeRange[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setTimeRange(key)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all shrink-0 ${
+                    timeRange === key
+                      ? 'bg-white text-slate-900 shadow-sm font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {TIME_LABELS[key]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart Container */}
+          <div className="h-64 md:h-72 w-full mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} barCategoryGap="28%" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#64748b" 
+                  fontSize={11} 
+                  tickLine={false} 
+                  axisLine={{ stroke: '#cbd5e1' }} 
+                  dy={8} 
+                />
+                <YAxis 
+                  stroke="#64748b" 
+                  fontSize={10} 
+                  tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  width={42} 
+                />
+                <Tooltip
+                  cursor={{ fill: 'rgba(15, 23, 42, 0.03)' }}
+                  formatter={(val: any, name: any) => [
+                    <span key="amount" className="font-mono font-bold text-slate-900">{formatPKR(Number(val))}</span>, 
+                    <span key="metric" className="capitalize text-slate-600 font-medium">{name}</span>
+                  ]}
+                  contentStyle={{ 
+                    backgroundColor: '#FFFFFF', 
+                    borderRadius: '12px', 
+                    border: '1px solid #e2e8f0', 
+                    fontSize: '12px', 
+                    boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                    padding: '10px 14px'
+                  }}
+                />
+                <Bar dataKey="Sales" fill="#0F172A" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                <Bar dataKey="Expenses" fill="#E06349" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                <Bar dataKey="Profit" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={36} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Clean Legend */}
+          <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-slate-100 text-xs font-semibold text-slate-600">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-[#0F172A]" /> Sales
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-[#E06349]" /> Expenses
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-[#10B981]" /> Net Profit
+            </span>
+          </div>
+        </div>
+
+        {/* ── Secondary Alerts & Inventory Glance (4 cols) ── */}
+        <div className="lg:col-span-4 space-y-4">
+          
+          {/* Quick Inventory Stock Glance */}
+          <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-slate-400" />
+                Inventory Glance
+              </h4>
+              <button
+                onClick={() => setCurrentTab('inventory')}
+                className="text-[11px] font-semibold text-[#E06349] hover:underline"
+              >
+                View Stock
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 font-bold block">IN STOCK</span>
+                <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">{stockCount}</span>
+                <span className="text-[9px] text-slate-400">units</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 font-bold block">SOLD</span>
+                <span className="text-sm font-bold text-slate-900 font-mono mt-0.5 block">{soldCount}</span>
+                <span className="text-[9px] text-slate-400">units</span>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                <span className="text-[10px] text-slate-400 font-bold block">EXP. GAIN</span>
+                <span className="text-sm font-bold text-emerald-600 font-mono mt-0.5 block">
+                  {potentialProfit >= 1000 ? `${Math.round(potentialProfit / 1000)}k` : formatPKR(potentialProfit)}
+                </span>
+                <span className="text-[9px] text-slate-400">retail margin</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Attention Alerts Feed */}
+          <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2.5">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-slate-400" />
+                Requires Attention
+              </h4>
+              {alerts.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">
+                  {alerts.length} Pending
+                </span>
+              )}
+            </div>
+
+            {alerts.length === 0 ? (
+              <div className="py-5 text-center text-xs text-slate-400">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto mb-1 opacity-80" />
+                No outstanding inventory or budget alerts.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {alerts.map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => {
+                      if (a.tab) setCurrentTab(a.tab);
+                    }}
+                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                      a.severity === 'danger'
+                        ? 'bg-rose-50/70 border-rose-200/80 hover:bg-rose-100/70 text-rose-900'
+                        : a.severity === 'warning'
+                        ? 'bg-amber-50/70 border-amber-200/80 hover:bg-amber-100/70 text-amber-900'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="shrink-0 opacity-80">{a.icon}</div>
+                      <span className="text-[11px] font-medium leading-tight truncate">{a.text}</span>
+                    </div>
+                    {a.actionLabel && (
+                      <span className="text-[10px] font-bold text-[#E06349] shrink-0 ml-2 hover:underline">
+                        {a.actionLabel}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ 5. RECENT ACTIVITY FEED ═══════ */}
+      <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b border-slate-100">
           <div>
-            <p className="text-[10px] text-slate-400 font-medium">{budgetRemaining >= 0 ? 'Left' : 'Over'}</p>
-            <p className={`text-sm font-bold font-mono ${budgetRemaining >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {formatPKR(Math.abs(budgetRemaining))}
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-slate-400" />
+              Recent Operations & Transactions
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Real-time audit log of sales, purchases, and expenses
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* ═══════ MONTHLY PERFORMANCE CHART ═══════ */}
-      <div className="rounded-2xl md:rounded-3xl border border-black/[0.08] bg-white p-4 md:p-5">
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Performance</p>
-        </div>
-        {/* Time range pills */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-          {(Object.keys(TIME_LABELS) as TimeRange[]).map((key) => (
-            <button
-              key={key}
-              onClick={() => setTimeRange(key)}
-              className={`whitespace-nowrap px-2.5 py-1 rounded-xl text-[10px] md:text-[11px] font-bold transition-all shrink-0 ${
-                timeRange === key
-                  ? 'bg-[#141414] text-white shadow-sm'
-                  : 'bg-[#FAFAFA] text-slate-500 border border-black/[0.06] hover:bg-slate-100'
-              }`}
-            >
-              {TIME_LABELS[key]}
-            </button>
-          ))}
-        </div>
-
-        {/* Chart */}
-        <div className="h-56 md:h-64 w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barCategoryGap="25%" margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="4 4" stroke="rgba(0,0,0,0.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dy={10} />
-              <YAxis 
-                stroke="#64748b" 
-                fontSize={10} 
-                tickFormatter={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : v} 
-                tickLine={false} 
-                axisLine={false} 
-                width={40} 
-              />
-              <Tooltip
-                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                formatter={(val: any, name: any) => [
-                  <span className="font-mono font-bold">{formatPKR(Number(val))}</span>, 
-                  <span className="capitalize">{name}</span>
-                ]}
-                contentStyle={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                  borderRadius: '16px', 
-                  border: '1px solid rgba(0,0,0,0.06)', 
-                  fontSize: '12px', 
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                  backdropFilter: 'blur(8px)',
-                  padding: '12px'
-                }}
-              />
-              <Bar dataKey="Sales" fill="#141414" radius={[6, 6, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="Expenses" fill="#E06349" radius={[6, 6, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="Profit" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={40} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-1 text-[10px] text-slate-400">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[#141414]" /> Sales</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-[#E06349]" /> Expenses</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-500" /> Profit</span>
-        </div>
-      </div>
-
-      {/* ═══════ ALERTS (compact) ═══════ */}
-      {alerts.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Attention</p>
-          {alerts.map((a, idx) => (
-            <div
-              key={idx}
-              className={`flex items-center gap-2.5 p-3 rounded-2xl border text-[11px] font-medium ${
-                a.severity === 'danger'
-                  ? 'bg-rose-50/60 border-rose-200/60 text-rose-800'
-                  : a.severity === 'warning'
-                  ? 'bg-amber-50/60 border-amber-200/60 text-amber-800'
-                  : 'bg-sky-50/60 border-sky-200/60 text-sky-800'
-              }`}
-            >
-              <div className="shrink-0 opacity-70">{a.icon}</div>
-              <span className="leading-tight">{a.text}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ═══════ RECENT ACTIVITY FEED ═══════ */}
-      <div className="rounded-2xl md:rounded-3xl border border-black/[0.08] bg-white">
-        <div className="flex items-center justify-between px-4 md:px-5 pt-3 pb-2">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Recent Activity</p>
-          <button onClick={() => setCurrentTab('sales')} className="text-[11px] font-semibold text-[#E06349] flex items-center gap-0.5 hover:underline">
-            View All <ChevronRight className="h-3 w-3" />
+          <button 
+            onClick={() => setCurrentTab('sales')} 
+            className="text-xs font-semibold text-[#E06349] flex items-center gap-0.5 hover:underline"
+          >
+            View All Sales <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="divide-y divide-black/[0.04]">
+
+        <div className="divide-y divide-slate-100">
           {recentActivity.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-8 px-5">No transactions recorded yet</p>
+            <div className="py-12 text-center text-xs text-slate-400">
+              No transactions recorded yet in the database.
+            </div>
           ) : (
             recentActivity.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2.5 px-4 md:px-5 py-2.5 hover:bg-[#FAFAFA] transition-colors cursor-default"
+                onClick={() => {
+                  if (item.rawSale) {
+                    setSelectedReceipt(item.rawSale);
+                  }
+                }}
+                className={`flex items-center justify-between gap-3 px-4 md:px-5 py-3 transition-colors ${
+                  item.rawSale ? 'hover:bg-slate-50/80 cursor-pointer' : 'hover:bg-slate-50/40 cursor-default'
+                }`}
               >
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                    item.type === 'income'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                      : 'bg-rose-50 border-rose-200 text-rose-500'
-                  }`}
-                >
-                  {item.icon}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
+                      item.type === 'income'
+                        ? 'bg-emerald-50 border-emerald-200/80 text-emerald-600'
+                        : 'bg-rose-50 border-rose-200/80 text-rose-600'
+                    }`}
+                  >
+                    {item.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 truncate">
+                      {item.desc}
+                    </p>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                      <span>{formatDate(item.date)}</span>
+                      <span>•</span>
+                      <span className="font-medium text-slate-500">{item.category}</span>
+                      {item.rawSale && (
+                        <span className="text-[10px] text-[#E06349] font-semibold underline ml-1">
+                          View Receipt
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-slate-800 truncate">{item.desc}</p>
-                  <p className="text-[10px] text-slate-400">{formatDate(item.date)} • {item.category}</p>
+
+                <div className="text-right shrink-0">
+                  <span
+                    className={`text-xs font-bold font-mono ${
+                      item.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
+                    }`}
+                  >
+                    {item.type === 'income' ? '+' : '-'}{formatPKR(item.amount)}
+                  </span>
                 </div>
-                <span
-                  className={`text-[12px] font-bold font-mono shrink-0 ${
-                    item.type === 'income' ? 'text-emerald-600' : 'text-rose-500'
-                  }`}
-                >
-                  {item.type === 'income' ? '+' : '-'}{formatPKR(item.amount)}
-                </span>
               </div>
             ))
           )}
         </div>
       </div>
 
-      {/* Receipt modal */}
+      {/* Sale Receipt Modal */}
       <SaleReceiptModal
         sale={selectedReceipt}
         isOpen={!!selectedReceipt}
@@ -580,55 +962,86 @@ export function DashboardScreen() {
   );
 }
 
-// ═══ Sub-components (private to this file) ═══
+// ═════════════════════════════════════════
+// SUB-COMPONENTS
+// ═════════════════════════════════════════
 
-function KpiMini({ label, value, icon, onClick, accent, negative }: {
-  label: string; value: number; icon: React.ReactNode; onClick?: () => void; accent?: boolean; negative?: boolean;
-}) {
+interface BentoKpiCardProps {
+  label: string;
+  value: number | string;
+  subtext?: string;
+  icon: React.ReactNode;
+  iconBg?: string;
+  valueColor?: string;
+  onClick?: () => void;
+  clickableText?: string;
+  isCurrency?: boolean;
+  badge?: string;
+  badgeStyle?: string;
+}
+
+function BentoKpiCard({
+  label,
+  value,
+  subtext,
+  icon,
+  iconBg = 'bg-slate-100 border-slate-200',
+  valueColor = 'text-slate-900',
+  onClick,
+  clickableText,
+  isCurrency: _isCurrency = true,
+  badge,
+  badgeStyle
+}: BentoKpiCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl border border-black/[0.08] bg-white p-3 md:p-3.5 transition-all ${onClick ? 'cursor-pointer hover:border-black/[0.18] active:scale-[0.98]' : ''}`}
+      className={`rounded-xl border border-slate-200/80 bg-white p-3.5 md:p-4 shadow-sm transition-all duration-200 flex flex-col justify-between ${
+        onClick ? 'cursor-pointer hover:border-slate-300 hover:shadow-md active:scale-[0.99]' : ''
+      }`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-        <div className="text-slate-400">{icon}</div>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">
+            {label}
+          </span>
+          <div className={`flex h-7 w-7 items-center justify-center rounded-lg border ${iconBg}`}>
+            {icon}
+          </div>
+        </div>
+
+        <div className="mt-1">
+          {typeof value === 'number' ? (
+            <AnimatedNumber
+              value={value}
+              className={`text-lg md:text-xl font-bold font-mono tracking-tight block ${valueColor}`}
+            />
+          ) : (
+            <span className={`text-lg md:text-xl font-bold font-mono tracking-tight block ${valueColor}`}>
+              {value}
+            </span>
+          )}
+        </div>
       </div>
-      <AnimatedNumber
-        value={value}
-        className={`text-lg md:text-xl font-bold tracking-tight ${
-          accent ? 'text-[#E06349]' : negative ? 'text-rose-600' : 'text-slate-900'
-        }`}
-      />
+
+      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+        {subtext && (
+          <span className="text-slate-400 font-medium truncate">
+            {subtext}
+          </span>
+        )}
+        {badge && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badgeStyle}`}>
+            {badge}
+          </span>
+        )}
+        {clickableText && !badge && (
+          <span className="text-[10px] font-semibold text-[#E06349] hover:underline flex items-center gap-0.5 ml-auto">
+            {clickableText} <ArrowUpRight className="h-2.5 w-2.5" />
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-function MiniStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="p-2.5 rounded-xl bg-[#FAFAFA] border border-black/[0.04] text-center">
-      <p className="text-[10px] text-slate-400 font-medium">{label}</p>
-      <p className="text-sm font-bold text-slate-900 font-mono mt-0.5">{value}</p>
-      {sub && <p className="text-[9px] text-slate-400">{sub}</p>}
-    </div>
-  );
-}
-
-function QuickAction({ label, sub, icon, color, onClick }: {
-  label: string; sub: string; icon: React.ReactNode; color: string; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-3 p-3 rounded-2xl border border-black/[0.08] bg-white hover:border-black/[0.18] active:scale-[0.97] text-left transition-all"
-    >
-      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${color}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <span className="text-xs font-bold text-slate-900 block truncate">{label}</span>
-        <span className="text-[10px] text-slate-400 block truncate">{sub}</span>
-      </div>
-    </button>
-  );
-}
